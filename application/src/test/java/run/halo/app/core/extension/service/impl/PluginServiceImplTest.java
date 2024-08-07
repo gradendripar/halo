@@ -46,6 +46,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.pf4j.PluginDescriptor;
 import org.pf4j.PluginWrapper;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.util.FileSystemUtils;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -57,7 +58,7 @@ import run.halo.app.infra.SystemVersionSupplier;
 import run.halo.app.infra.exception.PluginAlreadyExistsException;
 import run.halo.app.infra.utils.FileUtils;
 import run.halo.app.plugin.PluginConst;
-import run.halo.app.plugin.PluginProperties;
+import run.halo.app.plugin.PluginsRootGetter;
 import run.halo.app.plugin.SpringPluginManager;
 import run.halo.app.plugin.YamlPluginFinder;
 
@@ -71,7 +72,7 @@ class PluginServiceImplTest {
     ReactiveExtensionClient client;
 
     @Mock
-    PluginProperties pluginProperties;
+    PluginsRootGetter pluginsRootGetter;
 
     @Mock
     SpringPluginManager pluginManager;
@@ -122,9 +123,6 @@ class PluginServiceImplTest {
                 getClass().getClassLoader().getResource("plugin/plugin-0.0.2")).toURI();
             FileUtils.jar(Paths.get(fakePluingUri), tempDirectory.resolve("plugin-0.0.2.jar"));
 
-            lenient().when(pluginProperties.getPluginsRoot())
-                .thenReturn(tempDirectory.resolve("plugins").toString());
-
             lenient().when(systemVersionSupplier.get()).thenReturn(Version.valueOf("0.0.0"));
         }
 
@@ -143,6 +141,7 @@ class PluginServiceImplTest {
 
         @Test
         void installWhenPluginNotExist() {
+            when(pluginsRootGetter.get()).thenReturn(tempDirectory.resolve("plugins"));
             when(client.fetch(Plugin.class, "fake-plugin")).thenReturn(Mono.empty());
             var createdPlugin = mock(Plugin.class);
             when(client.create(isA(Plugin.class))).thenReturn(Mono.just(createdPlugin));
@@ -153,7 +152,6 @@ class PluginServiceImplTest {
 
             verify(client).fetch(Plugin.class, "fake-plugin");
             verify(systemVersionSupplier).get();
-            verify(pluginProperties).getPluginsRoot();
             verify(client).create(isA(Plugin.class));
         }
 
@@ -180,6 +178,8 @@ class PluginServiceImplTest {
 
         @Test
         void upgradeNormally() {
+            when(pluginsRootGetter.get()).thenReturn(tempDirectory.resolve("plugins"));
+
             var oldFakePlugin = createPlugin("fake-plugin", plugin -> {
                 plugin.getSpec().setEnabled(true);
                 plugin.getSpec().setVersion("0.0.1");
@@ -386,6 +386,24 @@ class PluginServiceImplTest {
                             resource.getFile().toPath());
                         assertEquals("different-version.js", resource.getFilename());
                         assertEquals("fake-content", resource.getContentAsString(UTF_8));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+
+            try {
+                FileSystemUtils.deleteRecursively(tempDir);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            cache.computeIfAbsent("fake-version", fakeContent)
+                .as(StepVerifier::create)
+                .assertNext(resource -> {
+                    try {
+                        assertThat(Files.exists(tempDir)).isTrue();
+                        assertEquals(tempDir.resolve("different-version.js"),
+                            resource.getFile().toPath());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }

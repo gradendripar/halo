@@ -38,6 +38,7 @@ import run.halo.app.plugin.event.HaloPluginStoppedEvent;
 import run.halo.app.plugin.event.SpringPluginStartedEvent;
 import run.halo.app.plugin.event.SpringPluginStoppedEvent;
 import run.halo.app.plugin.event.SpringPluginStoppingEvent;
+import run.halo.app.search.SearchService;
 import run.halo.app.theme.DefaultTemplateNameResolver;
 import run.halo.app.theme.ViewNameResolver;
 import run.halo.app.theme.finders.FinderRegistry;
@@ -84,8 +85,8 @@ public class DefaultPluginApplicationContextFactory implements PluginApplication
 
         sw.start("RegisterBeans");
         var beanFactory = context.getBeanFactory();
-        context.registerBean(AggregatedRouterFunction.class);
         beanFactory.registerSingleton("pluginWrapper", pluginWrapper);
+        context.registerBean(AggregatedRouterFunction.class);
 
         if (pluginWrapper.getPlugin() instanceof SpringPlugin springPlugin) {
             beanFactory.registerSingleton("pluginContext", springPlugin.getPluginContext());
@@ -135,6 +136,11 @@ public class DefaultPluginApplicationContextFactory implements PluginApplication
                     pluginRouterFunctionManager
                 );
             });
+
+        rootContext.getBeanProvider(SearchService.class)
+            .ifUnique(searchService ->
+                beanFactory.registerSingleton("searchService", searchService)
+            );
 
         sw.stop();
 

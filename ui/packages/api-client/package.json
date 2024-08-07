@@ -1,6 +1,6 @@
 {
   "name": "@halo-dev/api-client",
-  "version": "2.17.0",
+  "version": "2.19.0",
   "description": "API Client for Halo 2",
   "homepage": "https://github.com/halo-dev/halo/tree/main/ui/packages/api-client#readme",
   "bugs": {
@@ -41,12 +41,13 @@
   ],
   "scripts": {
     "build": "vite build",
-    "gen": "openapi-generator-cli generate -i ../../../api-docs/openapi/v3_0/aggregated.json -g typescript-axios -c ./.openapi_config.yaml -o ./src --type-mappings='set=Array'"
+    "gen": "rimraf --glob './src/**' && openapi-generator-cli generate -i ../../../api-docs/openapi/v3_0/aggregated.json -g typescript-axios -c ./.openapi_config.yaml -o ./src --type-mappings='set=Array'"
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.13.4",
     "@types/node": "^20.14.2",
-    "typescript": "^5.4.5",
+    "rimraf": "^5.0.7",
+    "typescript": "~5.5.4",
     "unbuild": "^0.7.6",
     "vite-plugin-dts": "^3.9.1"
   },
