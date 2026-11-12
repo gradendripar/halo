@@ -1,30 +1,37 @@
+import { defineConfig } from "vite-plus";
+import { UserConfig } from "vite-plus/pack";
 
-import path from "path";
-import { defineConfig } from "vite";
-import Dts from "vite-plugin-dts";
+const sharedConfig: UserConfig = {
+  entry: ["./entry/index.ts"],
+  deps: {
+    neverBundle: ["axios"],
+    alwaysBundle: ["qs"],
+    onlyBundle: false,
+  },
+  outputOptions: {
+    globals: {
+      axios: "axios",
+    },
+  },
+  platform: "browser",
+  globalName: "HaloApiClient",
+  tsconfig: "./tsconfig.json",
+  exports: true,
+  dts: {
+    tsgo: true,
+  },
+};
 
 export default defineConfig({
-  plugins: [
-    Dts({
-      tsconfigPath: "./tsconfig.json",
-    }),
+  pack: [
+    {
+      ...sharedConfig,
+      format: "esm",
+    },
+    {
+      ...sharedConfig,
+      format: "iife",
+      minify: true,
+    },
   ],
-  build: {
-    lib: {
-      entry: path.resolve(__dirname, "entry/index.ts"),
-      name: "HaloApiClient",
-      formats: ["es", "iife"],
-      fileName: (format) => `halo-api-client.${format}.js`,
-    },
-    rollupOptions: {
-      external: ["axios"],
-      output: {
-        globals: {
-          axios: "axios",
-        },
-        exports: "named",
-      },
-    },
-    sourcemap: true,
-  },
 });

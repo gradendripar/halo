@@ -14,11 +14,10 @@ class LabelSelectorTest {
 
     @Test
     void builderTest() {
-        var labelSelector = LabelSelector.builder()
-            .eq("a", "v1")
-            .in("b", "v2", "v3")
-            .build();
-        assertThat(labelSelector.toString())
-            .isEqualTo("a equal v1, b IN (v2, v3)");
+        var labelSelector =
+                LabelSelector.builder().eq("a", "v1").in("b", "v2", "v3").build();
+        assertThat(labelSelector.toString()).isEqualTo("""
+                (metadata.labels['a'] = 'v1' AND metadata.labels['b'] IN ('v2', 'v3'))\
+                """);
     }
 }

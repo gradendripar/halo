@@ -1,7 +1,7 @@
 package run.halo.app.search.event;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.lang.Nullable;
 import run.halo.app.plugin.SharedEvent;
 
 @SharedEvent
@@ -23,5 +23,4 @@ public class HaloDocumentDeleteRequestEvent extends ApplicationEvent {
     public Iterable<String> getDocIds() {
         return docIds;
     }
-
 }

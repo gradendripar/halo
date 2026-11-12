@@ -1,12 +1,7 @@
 <script lang="ts" setup>
-import AnnotationsForm from "@/components/form/AnnotationsForm.vue";
-import { singlePageLabels } from "@/constants/labels";
-import { FormType } from "@/types/slug";
-import { toDatetimeLocal, toISOString } from "@/utils/date";
-import { randomUUID } from "@/utils/id";
 import useSlugify from "@console/composables/use-slugify";
 import { useThemeCustomTemplates } from "@console/modules/interface/themes/composables/use-theme";
-import { submitForm } from "@formkit/core";
+import { submitForm, type FormKitNode } from "@formkit/core";
 import type { SinglePage } from "@halo-dev/api-client";
 import { coreApiClient } from "@halo-dev/api-client";
 import {
@@ -16,9 +11,12 @@ import {
   VModal,
   VSpace,
 } from "@halo-dev/components";
-import { cloneDeep } from "lodash-es";
+import { FormType, utils } from "@halo-dev/ui-shared";
+import { cloneDeep } from "es-toolkit";
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import type AnnotationsForm from "@/components/form/AnnotationsForm.vue";
+import { singlePageLabels } from "@/constants/labels";
 import { usePageUpdateMutate } from "../composables/use-page-update-mutate";
 
 const props = withDefaults(
@@ -64,7 +62,7 @@ const formState = ref<SinglePage>({
   apiVersion: "content.halo.run/v1alpha1",
   kind: "SinglePage",
   metadata: {
-    name: randomUUID(),
+    name: utils.id.uuid(),
   },
 });
 const modal = ref<InstanceType<typeof VModal> | null>(null);
@@ -234,7 +232,9 @@ watch(
   (value) => {
     if (value) {
       formState.value = cloneDeep(value);
-      publishTime.value = toDatetimeLocal(formState.value.spec.publishTime);
+      publishTime.value = utils.date.toDatetimeLocal(
+        formState.value.spec.publishTime
+      );
     }
   },
   {
@@ -245,12 +245,18 @@ watch(
 watch(
   () => publishTime.value,
   (value) => {
-    formState.value.spec.publishTime = value ? toISOString(value) : undefined;
+    formState.value.spec.publishTime = value
+      ? utils.date.toISOString(value)
+      : undefined;
   }
 );
 
 // custom templates
-const { templates } = useThemeCustomTemplates("page");
+const {
+  templates,
+  isInitialLoading: templatesLoading,
+  isError: templatesError,
+} = useThemeCustomTemplates("page", () => formState.value.spec.template);
 
 // slug
 const { handleGenerateSlug } = useSlugify(
@@ -266,6 +272,30 @@ const { handleGenerateSlug } = useSlugify(
   computed(() => !isUpdateMode),
   FormType.SINGLE_PAGE
 );
+
+// fixme: check if slug is unique
+// Finally, we need to check if the slug is unique in the database
+async function slugUniqueValidation(node: FormKitNode) {
+  const value = node.value;
+  if (!value) {
+    return true;
+  }
+
+  const fieldSelector = [`spec.slug=${value}`];
+
+  if (isUpdateMode) {
+    fieldSelector.push(`metadata.name!=${formState.value.metadata.name}`);
+  }
+
+  const { data: pagesWithSameSlug } =
+    await coreApiClient.content.singlePage.listSinglePage({
+      fieldSelector,
+      page: 1,
+      size: 1,
+    });
+
+  return !pagesWithSameSlug.total;
+}
 </script>
 
 <template>
@@ -302,14 +332,20 @@ const { handleGenerateSlug } = useSlugify(
               :label="$t('core.page.settings.fields.title.label')"
               type="text"
               name="title"
-              validation="required|length:0,100"
+              validation="required|length:0,1024"
             ></FormKit>
             <FormKit
               v-model="formState.spec.slug"
               :label="$t('core.page.settings.fields.slug.label')"
               name="slug"
               type="text"
-              validation="required|length:0,100"
+              validation="required|length:0,1024|slugUniqueValidation"
+              :validation-rules="{ slugUniqueValidation }"
+              :validation-messages="{
+                slugUniqueValidation: $t(
+                  'core.common.form.validation.slug_unique'
+                ),
+              }"
               :help="$t('core.page.settings.fields.slug.help')"
             >
               <template #suffix>
@@ -318,7 +354,7 @@ const { handleGenerateSlug } = useSlugify(
                     $t('core.page.settings.fields.slug.refresh_message')
                   "
                   class="group flex h-full cursor-pointer items-center border-l px-3 transition-all hover:bg-gray-100"
-                  @click="handleGenerateSlug(true, FormType.SINGLE_PAGE)"
+                  @click="handleGenerateSlug(true)"
                 >
                   <IconRefreshLine
                     class="h-4 w-4 text-gray-500 group-hover:text-gray-700"
@@ -328,15 +364,11 @@ const { handleGenerateSlug } = useSlugify(
             </FormKit>
             <FormKit
               v-model="formState.spec.excerpt.autoGenerate"
-              :options="[
-                { label: $t('core.common.radio.yes'), value: true },
-                { label: $t('core.common.radio.no'), value: false },
-              ]"
               name="autoGenerate"
               :label="
                 $t('core.page.settings.fields.auto_generate_excerpt.label')
               "
-              type="radio"
+              type="checkbox"
             >
             </FormKit>
             <FormKit
@@ -346,7 +378,18 @@ const { handleGenerateSlug } = useSlugify(
               :label="$t('core.page.settings.fields.raw_excerpt.label')"
               type="textarea"
               validation="length:0,1024"
-              :rows="5"
+              auto-height
+              :max-auto-height="200"
+            ></FormKit>
+            <FormKit
+              v-model="formState.spec.cover"
+              :label="$t('core.page.settings.fields.cover.label')"
+              type="attachment"
+              name="cover"
+              width="50%"
+              aspect-ratio="16/9"
+              :accepts="['image/*']"
+              validation="length:0,1024"
             ></FormKit>
           </div>
         </div>
@@ -366,23 +409,15 @@ const { handleGenerateSlug } = useSlugify(
           <div class="mt-5 divide-y divide-gray-100 md:col-span-3 md:mt-0">
             <FormKit
               v-model="formState.spec.allowComment"
-              :options="[
-                { label: $t('core.common.radio.yes'), value: true },
-                { label: $t('core.common.radio.no'), value: false },
-              ]"
               name="allowComment"
               :label="$t('core.page.settings.fields.allow_comment.label')"
-              type="radio"
+              type="checkbox"
             ></FormKit>
             <FormKit
               v-model="formState.spec.pinned"
-              :options="[
-                { label: $t('core.common.radio.yes'), value: true },
-                { label: $t('core.common.radio.no'), value: false },
-              ]"
               :label="$t('core.page.settings.fields.pinned.label')"
               name="pinned"
-              type="radio"
+              type="checkbox"
             ></FormKit>
             <FormKit
               v-model="formState.spec.visible"
@@ -408,17 +443,10 @@ const { handleGenerateSlug } = useSlugify(
             <FormKit
               v-model="formState.spec.template"
               :options="templates"
+              :disabled="templatesLoading || templatesError"
               :label="$t('core.page.settings.fields.template.label')"
               type="select"
               name="template"
-            ></FormKit>
-            <FormKit
-              v-model="formState.spec.cover"
-              :label="$t('core.page.settings.fields.cover.label')"
-              type="attachment"
-              name="cover"
-              :accepts="['image/*']"
-              validation="length:0,1024"
             ></FormKit>
           </div>
         </div>
@@ -441,6 +469,7 @@ const { handleGenerateSlug } = useSlugify(
         <AnnotationsForm
           :key="formState.metadata.name"
           ref="annotationsFormRef"
+          :form-data="formState"
           :value="formState.metadata.annotations"
           kind="SinglePage"
           group="content.halo.run"
@@ -480,6 +509,7 @@ const { handleGenerateSlug } = useSlugify(
           "
           :loading="publishCanceling"
           type="danger"
+          ghost
           @click="handleUnpublish()"
         >
           {{ $t("core.common.buttons.cancel_publish") }}

@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import FilterCleanButton from "@/components/filter/FilterCleanButton.vue";
-import SearchInput from "@/components/input/SearchInput.vue";
-import HasPermission from "@/components/permission/HasPermission.vue";
 import type { Tag } from "@halo-dev/api-client";
 import { coreApiClient } from "@halo-dev/api-client";
 import {
@@ -11,13 +8,16 @@ import {
   VButton,
   VCard,
   VEmpty,
+  VEntityContainer,
+  VFilterDropdown,
+  VFilterDropdownGroup,
   VLoading,
   VPageHeader,
   VPagination,
   VSpace,
 } from "@halo-dev/components";
 import { useRouteQuery } from "@vueuse/router";
-import { computed, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import TagEditingModal from "./components/TagEditingModal.vue";
 import TagListItem from "./components/TagListItem.vue";
@@ -39,14 +39,6 @@ const size = useRouteQuery<number>("size", 20, {
   transform: Number,
 });
 const selectedSort = useRouteQuery<string | undefined>("sort");
-
-const hasFilters = computed(() => {
-  return !!selectedSort.value;
-});
-
-const handleClearFilters = () => {
-  selectedSort.value = undefined;
-};
 
 const {
   tags,
@@ -163,7 +155,7 @@ watch(selectedTagNames, (newVal) => {
   />
   <VPageHeader :title="$t('core.post_tag.title')">
     <template #icon>
-      <IconBookRead class="mr-2 self-center" />
+      <IconBookRead />
     </template>
     <template #actions>
       <VButton
@@ -172,7 +164,7 @@ watch(selectedTagNames, (newVal) => {
         @click="editingModal = true"
       >
         <template #icon>
-          <IconAddCircle class="h-full w-full" />
+          <IconAddCircle />
         </template>
         {{ $t("core.common.buttons.new") }}
       </VButton>
@@ -203,54 +195,58 @@ watch(selectedTagNames, (newVal) => {
               <SearchInput v-else v-model="keyword" />
             </div>
             <VSpace spacing="lg" class="flex-wrap">
-              <FilterCleanButton
-                v-if="hasFilters"
-                @click="handleClearFilters"
-              />
-              <FilterDropdown
-                v-model="selectedSort"
-                :label="$t('core.common.filters.labels.sort')"
-                :items="[
-                  {
-                    label: t('core.common.filters.item_labels.default'),
-                  },
-                  {
-                    label: t(
-                      'core.post.tag.filters.sort.items.create_time_desc'
-                    ),
-                    value: 'metadata.creationTimestamp,desc',
-                  },
-                  {
-                    label: t(
-                      'core.post.tag.filters.sort.items.create_time_asc'
-                    ),
-                    value: 'metadata.creationTimestamp,asc',
-                  },
-                  {
-                    label: t(
-                      'core.post.tag.filters.sort.items.display_name_desc'
-                    ),
-                    value: 'spec.displayName,desc',
-                  },
-                  {
-                    label: t(
-                      'core.post.tag.filters.sort.items.display_name_asc'
-                    ),
-                    value: 'spec.displayName,asc',
-                  },
-                ]"
-              />
+              <VFilterDropdownGroup
+                :clear-label="$t('core.common.buttons.reset')"
+              >
+                <VFilterDropdown
+                  v-model="selectedSort"
+                  :label="$t('core.common.filters.labels.sort')"
+                  show-clear-option
+                  :clear-label="t('core.common.filters.item_labels.default')"
+                  :options="[
+                    {
+                      label: t(
+                        'core.post.tag.filters.sort.items.create_time_desc'
+                      ),
+                      value: 'metadata.creationTimestamp,desc',
+                    },
+                    {
+                      label: t(
+                        'core.post.tag.filters.sort.items.create_time_asc'
+                      ),
+                      value: 'metadata.creationTimestamp,asc',
+                    },
+                    {
+                      label: t(
+                        'core.post.tag.filters.sort.items.display_name_desc'
+                      ),
+                      value: 'spec.displayName,desc',
+                    },
+                    {
+                      label: t(
+                        'core.post.tag.filters.sort.items.display_name_asc'
+                      ),
+                      value: 'spec.displayName,asc',
+                    },
+                    {
+                      label: t('core.post.tag.filters.sort.items.post_desc'),
+                      value: 'status.postCount,desc',
+                    },
+                  ]"
+                />
+              </VFilterDropdownGroup>
               <div class="flex flex-row gap-2">
-                <div
+                <button
+                  v-tooltip="$t('core.common.buttons.refresh')"
+                  type="button"
                   class="group cursor-pointer rounded p-1 hover:bg-gray-200"
                   @click="handleFetchTags()"
                 >
                   <IconRefreshLine
-                    v-tooltip="$t('core.common.buttons.refresh')"
                     :class="{ 'animate-spin text-gray-900': isFetching }"
                     class="h-4 w-4 text-gray-600 group-hover:text-gray-900"
                   />
-                </div>
+                </button>
               </div>
             </VSpace>
           </div>
@@ -267,9 +263,9 @@ watch(selectedTagNames, (newVal) => {
               <VButton @click="() => handleFetchTags">
                 {{ $t("core.common.buttons.refresh") }}
               </VButton>
-              <VButton type="primary" @click="editingModal = true">
+              <VButton type="secondary" @click="editingModal = true">
                 <template #icon>
-                  <IconAddCircle class="h-full w-full" />
+                  <IconAddCircle />
                 </template>
                 {{ $t("core.common.buttons.new") }}
               </VButton>
@@ -279,27 +275,24 @@ watch(selectedTagNames, (newVal) => {
       </Transition>
 
       <Transition appear name="fade">
-        <ul
-          class="box-border h-full w-full divide-y divide-gray-100"
-          role="list"
-        >
-          <li v-for="(tag, index) in tags" :key="index">
-            <TagListItem
-              :tag="tag"
-              :is-selected="selectedTag?.metadata.name === tag.metadata.name"
-              @editing="handleOpenEditingModal"
-              @delete="handleDelete"
-            >
-              <template #checkbox>
-                <input
-                  v-model="selectedTagNames"
-                  :value="tag.metadata.name"
-                  type="checkbox"
-                />
-              </template>
-            </TagListItem>
-          </li>
-        </ul>
+        <VEntityContainer>
+          <TagListItem
+            v-for="tag in tags"
+            :key="tag.metadata.name"
+            :tag="tag"
+            :is-selected="selectedTag?.metadata.name === tag.metadata.name"
+            @editing="handleOpenEditingModal"
+            @delete="handleDelete"
+          >
+            <template #checkbox>
+              <input
+                v-model="selectedTagNames"
+                :value="tag.metadata.name"
+                type="checkbox"
+              />
+            </template>
+          </TagListItem>
+        </VEntityContainer>
       </Transition>
       <template #footer>
         <VPagination

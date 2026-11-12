@@ -1,10 +1,4 @@
 <script lang="ts" setup>
-import { useRoleForm, useRoleTemplateSelection } from "@/composables/use-role";
-import { rbacAnnotations } from "@/constants/annotations";
-import { SUPER_ROLE_NAME } from "@/constants/constants";
-import { pluginLabels, roleLabels } from "@/constants/labels";
-import { formatDatetime } from "@/utils/date";
-import { resolveDeepDependencies } from "@/utils/role";
 import type { Role } from "@halo-dev/api-client";
 import { coreApiClient } from "@halo-dev/api-client";
 import {
@@ -18,27 +12,24 @@ import {
   VTabbar,
   VTag,
 } from "@halo-dev/components";
+import { utils } from "@halo-dev/ui-shared";
 import { useQuery } from "@tanstack/vue-query";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
+import { useRoleForm, useRoleTemplateSelection } from "@/composables/use-role";
+import { rbacAnnotations } from "@/constants/annotations";
+import { SUPER_ROLE_NAME } from "@/constants/constants";
+import { pluginLabels, roleLabels } from "@/constants/labels";
+import { resolveDeepDependencies } from "@/utils/role";
+import { useFetchRoleTemplates } from "../users/composables/use-role";
 
 const route = useRoute();
 const { t } = useI18n();
 
 const tabActiveId = ref("detail");
 
-const { data: roleTemplates } = useQuery({
-  queryKey: ["role-templates"],
-  queryFn: async () => {
-    const { data } = await coreApiClient.role.listRole({
-      page: 0,
-      size: 0,
-      labelSelector: [`${roleLabels.TEMPLATE}=true`, "!halo.run/hidden"],
-    });
-    return data.items;
-  },
-});
+const { data: roleTemplates } = useFetchRoleTemplates();
 
 const { roleTemplateGroups, handleRoleTemplateSelect, selectedRoleTemplates } =
   useRoleTemplateSelection(roleTemplates);
@@ -104,7 +95,7 @@ const handleUpdateRole = async () => {
 <template>
   <VPageHeader :title="$t('core.role.detail.title')">
     <template #icon>
-      <IconShieldUser class="mr-2 self-center" />
+      <IconShieldUser />
     </template>
   </VPageHeader>
   <div class="m-0 md:m-4">
@@ -160,7 +151,7 @@ const handleUpdateRole = async () => {
             </VDescriptionItem>
             <VDescriptionItem
               :label="$t('core.role.detail.fields.creation_time')"
-              :content="formatDatetime(formState.metadata.creationTimestamp)"
+              :content="utils.date.format(formState.metadata.creationTimestamp)"
             />
           </VDescription>
         </div>
@@ -183,8 +174,8 @@ const handleUpdateRole = async () => {
         <div>
           <dl class="divide-y divide-gray-100">
             <div
-              v-for="(group, groupIndex) in roleTemplateGroups"
-              :key="groupIndex"
+              v-for="(group, index) in roleTemplateGroups"
+              :key="index"
               class="bg-white px-4 py-5 hover:bg-gray-50 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"
             >
               <dt class="text-sm font-medium text-gray-900">
@@ -224,7 +215,7 @@ const handleUpdateRole = async () => {
               </dt>
               <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
                 <ul class="space-y-2">
-                  <li v-for="(role, index) in group.roles" :key="index">
+                  <li v-for="role in group.roles" :key="role.metadata.name">
                     <label
                       class="inline-flex w-72 cursor-pointer flex-row items-center gap-4 rounded-base border p-5 hover:border-primary"
                     >

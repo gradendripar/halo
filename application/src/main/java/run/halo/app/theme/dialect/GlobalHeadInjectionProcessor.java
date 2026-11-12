@@ -2,6 +2,7 @@ package run.halo.app.theme.dialect;
 
 import static org.thymeleaf.spring6.context.SpringContextUtils.getApplicationContext;
 
+import java.time.Duration;
 import org.thymeleaf.context.ITemplateContext;
 import org.thymeleaf.model.IModel;
 import org.thymeleaf.model.ITemplateEvent;
@@ -18,30 +19,33 @@ import run.halo.app.plugin.extensionpoint.ExtensionGetter;
  * @since 2.0.0
  */
 public class GlobalHeadInjectionProcessor extends AbstractElementModelProcessor {
+
+    private static final Duration BLOCKING_TIMEOUT = Duration.ofSeconds(10);
     /**
-     * Inserting tag will re-trigger this processor, in order to avoid the loop out trigger,
-     * this flag is required to prevent the loop problem.
+     * Inserting tag will re-trigger this processor, in order to avoid the loop out trigger, this flag is required to
+     * prevent the loop problem.
      */
-    private static final String PROCESS_FLAG =
-        GlobalHeadInjectionProcessor.class.getName() + ".PROCESSED";
+    private static final String PROCESS_FLAG = GlobalHeadInjectionProcessor.class.getName() + ".PROCESSED";
 
     private static final String TAG_NAME = "head";
     private static final int PRECEDENCE = 1000;
 
     public GlobalHeadInjectionProcessor(final String dialectPrefix) {
         super(
-            TemplateMode.HTML, // This processor will apply only to HTML mode
-            dialectPrefix,     // Prefix to be applied to name for matching
-            TAG_NAME,          // Tag name: match specifically this tag
-            false,              // Apply dialect prefix to tag name
-            null,              // No attribute name: will match by tag name
-            false,             // No prefix to be applied to attribute name
-            PRECEDENCE);       // Precedence (inside dialect's own precedence)
+                TemplateMode.HTML, // This processor will apply only to HTML mode
+                dialectPrefix, // Prefix to be applied to name for matching
+                TAG_NAME, // Tag name: match specifically this tag
+                false, // Apply dialect prefix to tag name
+                null, // No attribute name: will match by tag name
+                false, // No prefix to be applied to attribute name
+                PRECEDENCE); // Precedence (inside dialect's own precedence)
     }
 
     @Override
-    protected void doProcess(ITemplateContext context, IModel model,
-        IElementModelStructureHandler structureHandler) {
+    protected void doProcess(ITemplateContext context, IModel model, IElementModelStructureHandler structureHandler) {
+        if (context.containsVariable(InjectionExcluderProcessor.EXCLUDE_INJECTION_VARIABLE)) {
+            return;
+        }
 
         // note that this is important!!
         Object processedAlready = context.getVariable(PROCESS_FLAG);
@@ -71,9 +75,10 @@ public class GlobalHeadInjectionProcessor extends AbstractElementModelProcessor 
 
         // apply processors to modelToInsert
         getTemplateHeadProcessors(context)
-            .concatMap(processor -> processor.process(context, modelToInsert, structureHandler))
-            .then()
-            .block();
+                .concatMap(processor ->
+                        processor.process(SecureTemplateContextWrapper.wrap(context), modelToInsert, structureHandler))
+                .then()
+                .block(BLOCKING_TIMEOUT);
 
         // reset model to insert
         model.reset();
@@ -83,8 +88,9 @@ public class GlobalHeadInjectionProcessor extends AbstractElementModelProcessor 
     }
 
     private Flux<TemplateHeadProcessor> getTemplateHeadProcessors(ITemplateContext context) {
-        var extensionGetter = getApplicationContext(context).getBeanProvider(ExtensionGetter.class)
-            .getIfUnique();
+        var extensionGetter = getApplicationContext(context)
+                .getBeanProvider(ExtensionGetter.class)
+                .getIfUnique();
         if (extensionGetter == null) {
             return Flux.empty();
         }

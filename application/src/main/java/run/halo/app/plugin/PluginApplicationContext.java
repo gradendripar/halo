@@ -2,6 +2,7 @@ package run.halo.app.plugin;
 
 import java.util.List;
 import java.util.concurrent.locks.StampedLock;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.ResolvableType;
@@ -12,9 +13,8 @@ import org.springframework.util.MultiValueMap;
 import run.halo.app.extension.GroupVersionKind;
 
 /**
- * The generic IOC container for plugins.
- * The plugin-classes loaded through the same plugin-classloader will be put into the same
- * {@link PluginApplicationContext} for bean creation.
+ * The generic IOC container for plugins. The plugin-classes loaded through the same plugin-classloader will be put into
+ * the same {@link PluginApplicationContext} for bean creation.
  *
  * @author guqing
  * @since 2.0.0
@@ -27,7 +27,9 @@ public class PluginApplicationContext extends AnnotationConfigApplicationContext
 
     private final SpringPluginManager pluginManager;
 
-    public PluginApplicationContext(String pluginId, SpringPluginManager pluginManager) {
+    public PluginApplicationContext(
+            String pluginId, SpringPluginManager pluginManager, DefaultListableBeanFactory beanFactory) {
+        super(beanFactory);
         this.pluginId = pluginId;
         this.pluginManager = pluginManager;
     }
@@ -37,8 +39,7 @@ public class PluginApplicationContext extends AnnotationConfigApplicationContext
     }
 
     /**
-     * Gets the gvk-extension mapping.
-     * It is thread safe
+     * Gets the gvk-extension mapping. It is thread safe
      *
      * @param gvk the group-kind-version
      * @param extensionName extension resources name
@@ -48,8 +49,7 @@ public class PluginApplicationContext extends AnnotationConfigApplicationContext
     }
 
     /**
-     * Gets the extension names by gvk.
-     * It is thread safe
+     * Gets the extension names by gvk. It is thread safe
      *
      * @param gvk the group-kind-version
      * @return a immutable list of extension names
@@ -64,8 +64,7 @@ public class PluginApplicationContext extends AnnotationConfigApplicationContext
 
     static class GvkExtensionMapping {
         private final StampedLock sl = new StampedLock();
-        private final MultiValueMap<GroupVersionKind, String> extensionNamesMapping =
-            new LinkedMultiValueMap<>();
+        private final MultiValueMap<GroupVersionKind, String> extensionNamesMapping = new LinkedMultiValueMap<>();
 
         public void addAllExtensionMapping(GroupVersionKind gvk, List<String> extensionNames) {
             long stamp = sl.writeLock();
@@ -114,7 +113,7 @@ public class PluginApplicationContext extends AnnotationConfigApplicationContext
     @Override
     protected void publishEvent(Object event, ResolvableType typeHint) {
         if (event instanceof ApplicationEvent applicationEvent
-            && AnnotationUtils.findAnnotation(event.getClass(), SharedEvent.class) != null) {
+                && AnnotationUtils.findAnnotation(event.getClass(), SharedEvent.class) != null) {
             // publish event via root context
             var delegateEvent = new PluginSharedEventDelegator(this, applicationEvent);
             pluginManager.getRootContext().publishEvent(delegateEvent);

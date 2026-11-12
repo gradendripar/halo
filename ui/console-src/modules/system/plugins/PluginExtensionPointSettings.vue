@@ -1,6 +1,16 @@
 <script lang="ts" setup>
-import { coreApiClient } from "@halo-dev/api-client";
-import { IconSettings, VCard, VPageHeader } from "@halo-dev/components";
+import {
+  coreApiClient,
+  paginate,
+  type ExtensionPointDefinition,
+  type ExtensionPointDefinitionV1alpha1ApiListExtensionPointDefinitionRequest,
+} from "@halo-dev/api-client";
+import {
+  IconSettings,
+  VButton,
+  VCard,
+  VPageHeader,
+} from "@halo-dev/components";
 import { useQuery } from "@tanstack/vue-query";
 import { useRouteQuery } from "@vueuse/router";
 import { computed, watch } from "vue";
@@ -10,9 +20,18 @@ import ExtensionDefinitionSingletonView from "./components/extension-points/Exte
 const { data: extensionPointDefinitions } = useQuery({
   queryKey: ["extension-point-definitions"],
   queryFn: async () => {
-    const { data } =
-      await coreApiClient.plugin.extensionPointDefinition.listExtensionPointDefinition();
-    return data;
+    return await paginate<
+      ExtensionPointDefinitionV1alpha1ApiListExtensionPointDefinitionRequest,
+      ExtensionPointDefinition
+    >(
+      (params) =>
+        coreApiClient.plugin.extensionPointDefinition.listExtensionPointDefinition(
+          params
+        ),
+      {
+        size: 1000,
+      }
+    );
   },
 });
 
@@ -21,7 +40,7 @@ const selectedExtensionPointDefinitionName = useRouteQuery<string | undefined>(
 );
 
 const selectedExtensionPointDefinition = computed(() => {
-  return extensionPointDefinitions.value?.items.find(
+  return extensionPointDefinitions.value?.find(
     (item) => item.metadata.name === selectedExtensionPointDefinitionName.value
   );
 });
@@ -29,9 +48,8 @@ const selectedExtensionPointDefinition = computed(() => {
 watch(
   () => extensionPointDefinitions.value,
   (value) => {
-    if (value?.items.length && !selectedExtensionPointDefinitionName.value) {
-      selectedExtensionPointDefinitionName.value =
-        value?.items[0].metadata.name;
+    if (value?.length && !selectedExtensionPointDefinitionName.value) {
+      selectedExtensionPointDefinitionName.value = value?.[0].metadata.name;
     }
   },
   {
@@ -41,9 +59,14 @@ watch(
 </script>
 
 <template>
-  <VPageHeader title="扩展点设置">
+  <VPageHeader :title="$t('core.plugin.extension-settings.title')">
     <template #icon>
-      <IconSettings class="mr-2 self-center" />
+      <IconSettings />
+    </template>
+    <template #actions>
+      <VButton size="sm" @click="$router.back()">
+        {{ $t("core.common.buttons.back") }}
+      </VButton>
     </template>
   </VPageHeader>
 
@@ -57,14 +80,20 @@ watch(
           <div
             class="sticky top-0 z-10 flex h-12 items-center border-b bg-white px-4"
           >
-            <h2 class="font-semibold text-gray-900">扩展点定义</h2>
+            <h2 class="font-semibold text-gray-900">
+              {{
+                $t(
+                  "core.plugin.extension-settings.extension-point-definition.title"
+                )
+              }}
+            </h2>
           </div>
           <ul
-            class="box-border h-full w-full divide-y divide-gray-100 overflow-auto"
+            class="box-border h-full w-full divide-y divide-gray-100 overflow-auto pb-12"
             role="list"
           >
             <li
-              v-for="extensionPointDefinition in extensionPointDefinitions?.items"
+              v-for="extensionPointDefinition in extensionPointDefinitions"
               :key="extensionPointDefinition.metadata.name"
               class="relative cursor-pointer"
               @click="

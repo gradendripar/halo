@@ -2,16 +2,15 @@
 // core libs
 import type { CreateUserRequest } from "@halo-dev/api-client";
 import { consoleApiClient } from "@halo-dev/api-client";
+import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
+import { useQueryClient } from "@tanstack/vue-query";
 import { onMounted, ref } from "vue";
-
+import { useI18n } from "vue-i18n";
 // components
 import SubmitButton from "@/components/button/SubmitButton.vue";
-import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
-
 // hooks
+import { PASSWORD_REGEX } from "@/constants/regex";
 import { setFocus } from "@/formkit/utils/focus";
-import { useQueryClient } from "@tanstack/vue-query";
-import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
@@ -28,9 +27,7 @@ const formState = ref<CreateUserRequest>({
   email: "",
   name: "",
   password: "",
-  roles: [],
 });
-const selectedRole = ref("");
 const isSubmitting = ref(false);
 
 onMounted(() => {
@@ -41,8 +38,11 @@ const handleCreateUser = async () => {
   try {
     isSubmitting.value = true;
 
-    if (selectedRole.value) {
-      formState.value.roles = [selectedRole.value];
+    if (formState.value.name) {
+      formState.value.name = formState.value.name.trim();
+    }
+    if (formState.value.displayName) {
+      formState.value.displayName = formState.value.displayName.trim();
     }
 
     await consoleApiClient.user.createUser({
@@ -83,7 +83,7 @@ const handleCreateUser = async () => {
         name="name"
         :validation="[
           ['required'],
-          ['length:0,63'],
+          ['length', 0, 63],
           [
             'matches',
             /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/,
@@ -112,22 +112,22 @@ const handleCreateUser = async () => {
         :label="$t('core.user.change_password_modal.fields.new_password.label')"
         type="password"
         name="password"
-        validation="required:trim|length:5,100|matches:/^\S.*\S$/"
+        :validation="[
+          ['required'],
+          ['length', 5, 257],
+          ['matches', PASSWORD_REGEX],
+        ]"
         :validation-messages="{
-          matches: $t('core.formkit.validation.trim'),
+          matches: $t('core.formkit.validation.password'),
         }"
-      ></FormKit>
-      <FormKit
-        v-model="selectedRole"
-        :label="$t('core.user.grant_permission_modal.fields.role.label')"
-        type="roleSelect"
-        validation="required"
       ></FormKit>
       <FormKit
         v-model="formState.bio"
         :label="$t('core.user.editing_modal.fields.bio.label')"
         type="textarea"
         name="bio"
+        auto-height
+        :max-auto-height="200"
         validation="length:0,2048"
       ></FormKit>
     </FormKit>

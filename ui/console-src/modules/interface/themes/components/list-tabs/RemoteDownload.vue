@@ -1,19 +1,16 @@
 <script lang="ts" setup>
-import { useThemeStore } from "@console/stores/theme";
-import { submitForm } from "@formkit/core";
+import { invalidateThemeQueries } from "@console/composables/use-activated-theme";
 import { consoleApiClient } from "@halo-dev/api-client";
-import { Dialog, Toast, VButton } from "@halo-dev/components";
+import { Dialog, Toast, VAlert, VButton } from "@halo-dev/components";
 import { useQueryClient } from "@tanstack/vue-query";
-import { useRouteQuery } from "@vueuse/router";
 import type { Ref } from "vue";
-import { inject, nextTick, onMounted, ref } from "vue";
+import { inject, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { THEME_ALREADY_EXISTS_TYPE } from "../../constants";
 import type { ThemeInstallationErrorResponse } from "../../types";
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
-const themeStore = useThemeStore();
 
 const activeTabId = inject<Ref<string>>("activeTabId", ref(""));
 const remoteDownloadUrl = ref("");
@@ -31,8 +28,7 @@ const handleDownloadTheme = async () => {
 
     Toast.success(t("core.common.toast.install_success"));
 
-    queryClient.invalidateQueries({ queryKey: ["themes"] });
-    themeStore.fetchActivatedTheme();
+    void invalidateThemeQueries(queryClient);
 
     activeTabId.value = "installed";
 
@@ -45,7 +41,6 @@ const handleDownloadTheme = async () => {
 
     console.error("Failed to download theme", error);
   } finally {
-    routeRemoteDownloadUrl.value = null;
     downloading.value = false;
   }
 };
@@ -70,30 +65,39 @@ const handleCatchExistsException = async (
 
       Toast.success(t("core.common.toast.upgrade_success"));
 
-      queryClient.invalidateQueries({ queryKey: ["themes"] });
-      themeStore.fetchActivatedTheme();
+      void invalidateThemeQueries(queryClient);
 
       activeTabId.value = "installed";
     },
   });
 };
-
-// handle remote download url from route
-const routeRemoteDownloadUrl = useRouteQuery<string | null>(
-  "remote-download-url"
-);
-
-onMounted(() => {
-  if (routeRemoteDownloadUrl.value) {
-    remoteDownloadUrl.value = routeRemoteDownloadUrl.value;
-    nextTick(() => {
-      submitForm("theme-remote-download-form");
-    });
-  }
-});
 </script>
 
 <template>
+  <div class="mb-4">
+    <VAlert
+      type="warning"
+      :title="$t('core.common.text.warning')"
+      :closable="false"
+    >
+      <template #description>
+        <i18n-t
+          keypath="core.theme.list_modal.security_alert.description"
+          tag="p"
+        >
+          <template #url>
+            <a
+              href="https://www.halo.run/store/apps"
+              target="_blank"
+              class="underline-offset-2 hover:text-gray-900 hover:underline"
+            >
+              {{ $t("core.common.text.official_app_store") }}
+            </a>
+          </template>
+        </i18n-t>
+      </template>
+    </VAlert>
+  </div>
   <FormKit
     id="theme-remote-download-form"
     name="theme-remote-download-form"

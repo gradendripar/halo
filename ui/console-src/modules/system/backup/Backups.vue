@@ -4,18 +4,16 @@ import {
   IconServerLine,
   VButton,
   VCard,
+  VLoading,
   VPageHeader,
   VTabbar,
 } from "@halo-dev/components";
-
-import { usePluginModuleStore } from "@/stores/plugin";
-import type { BackupTab } from "@halo-dev/console-shared";
+import type { BackupTab } from "@halo-dev/ui-shared";
 import { useRouteQuery } from "@vueuse/router";
-import { markRaw, onMounted, shallowRef } from "vue";
+import { defineAsyncComponent, onMounted, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
+import { usePluginModuleStore } from "@/stores/plugin";
 import { useBackup } from "./composables/use-backup";
-import ListTab from "./tabs/List.vue";
-import RestoreTab from "./tabs/Restore.vue";
 
 const { t } = useI18n();
 
@@ -23,12 +21,18 @@ const tabs = shallowRef<BackupTab[]>([
   {
     id: "backups",
     label: t("core.backup.tabs.backup_list"),
-    component: markRaw(ListTab),
+    component: defineAsyncComponent({
+      loader: () => import("./tabs/List.vue"),
+      loadingComponent: VLoading,
+    }),
   },
   {
     id: "restore",
     label: t("core.backup.tabs.restore"),
-    component: markRaw(RestoreTab),
+    component: defineAsyncComponent({
+      loader: () => import("./tabs/Restore.vue"),
+      loadingComponent: VLoading,
+    }),
   },
 ]);
 
@@ -63,12 +67,12 @@ onMounted(async () => {
 <template>
   <VPageHeader :title="$t('core.backup.title')">
     <template #icon>
-      <IconServerLine class="mr-2 self-center" />
+      <IconServerLine />
     </template>
     <template #actions>
       <VButton type="secondary" @click="handleCreate">
         <template #icon>
-          <IconAddCircle class="h-full w-full" />
+          <IconAddCircle />
         </template>
         {{ $t("core.backup.operations.create.button") }}
       </VButton>

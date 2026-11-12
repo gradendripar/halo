@@ -1,12 +1,7 @@
 <script lang="ts" setup>
-import AnnotationsForm from "@/components/form/AnnotationsForm.vue";
-import { postLabels } from "@/constants/labels";
-import { FormType } from "@/types/slug";
-import { formatDatetime, toDatetimeLocal, toISOString } from "@/utils/date";
-import { randomUUID } from "@/utils/id";
 import useSlugify from "@console/composables/use-slugify";
 import { useThemeCustomTemplates } from "@console/modules/interface/themes/composables/use-theme";
-import { submitForm } from "@formkit/core";
+import { submitForm, type FormKitNode } from "@formkit/core";
 import type { Post } from "@halo-dev/api-client";
 import { consoleApiClient, coreApiClient } from "@halo-dev/api-client";
 import {
@@ -16,9 +11,12 @@ import {
   VModal,
   VSpace,
 } from "@halo-dev/components";
-import { cloneDeep } from "lodash-es";
+import { FormType, utils } from "@halo-dev/ui-shared";
+import { cloneDeep } from "es-toolkit";
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import type AnnotationsForm from "@/components/form/AnnotationsForm.vue";
+import { postLabels } from "@/constants/labels";
 import { usePostUpdateMutate } from "../composables/use-post-update-mutate";
 
 const props = withDefaults(
@@ -67,7 +65,7 @@ const formState = ref<Post>({
   apiVersion: "content.halo.run/v1alpha1",
   kind: "Post",
   metadata: {
-    name: randomUUID(),
+    name: utils.id.uuid(),
   },
 });
 const isSubmitting = ref(false);
@@ -110,7 +108,7 @@ const handlePublishClick = () => {
 // because currently there may be errors caused by changes in version due to asynchronous processing.
 const { mutateAsync: postUpdateMutate } = usePostUpdateMutate();
 
-const handleSave = async () => {
+const syncAnnotations = async () => {
   annotationsFormRef.value?.handleSubmit();
   await nextTick();
 
@@ -118,13 +116,21 @@ const handleSave = async () => {
     annotationsFormRef.value || {};
 
   if (customFormInvalid || specFormInvalid) {
-    return;
+    return false;
   }
 
   formState.value.metadata.annotations = {
     ...annotations,
     ...customAnnotations,
   };
+
+  return true;
+};
+
+const handleSave = async () => {
+  if (!(await syncAnnotations())) {
+    return;
+  }
 
   if (props.onlyEmit) {
     emit("saved", formState.value);
@@ -155,6 +161,10 @@ const handleSave = async () => {
 };
 
 const handlePublish = async () => {
+  if (!(await syncAnnotations())) {
+    return;
+  }
+
   if (props.onlyEmit) {
     emit("published", formState.value);
     modal.value?.close();
@@ -208,7 +218,9 @@ watch(
   (value) => {
     if (value) {
       formState.value = cloneDeep(value);
-      publishTime.value = toDatetimeLocal(formState.value.spec.publishTime);
+      publishTime.value = utils.date.toDatetimeLocal(
+        formState.value.spec.publishTime
+      );
     }
   },
   {
@@ -219,7 +231,9 @@ watch(
 watch(
   () => publishTime.value,
   (value) => {
-    formState.value.spec.publishTime = value ? toISOString(value) : undefined;
+    formState.value.spec.publishTime = value
+      ? utils.date.toISOString(value)
+      : undefined;
   }
 );
 
@@ -233,13 +247,17 @@ const isScheduledPublish = computed(() => {
 const publishTimeHelp = computed(() => {
   return isScheduledPublish.value
     ? t("core.post.settings.fields.publish_time.help.schedule_publish", {
-        datetime: formatDatetime(publishTime.value),
+        datetime: utils.date.format(publishTime.value),
       })
     : "";
 });
 
 // custom templates
-const { templates } = useThemeCustomTemplates("post");
+const {
+  templates,
+  isInitialLoading: templatesLoading,
+  isError: templatesError,
+} = useThemeCustomTemplates("post", () => formState.value.spec.template);
 
 const annotationsFormRef = ref<InstanceType<typeof AnnotationsForm>>();
 
@@ -257,6 +275,31 @@ const { handleGenerateSlug } = useSlugify(
   computed(() => !isUpdateMode.value),
   FormType.POST
 );
+
+// fixme: check if slug is unique
+// Finally, we need to check if the slug is unique in the database
+async function slugUniqueValidation(node: FormKitNode) {
+  const value = node.value;
+  if (!value) {
+    return true;
+  }
+
+  const fieldSelector = [`spec.slug=${value}`];
+
+  if (isUpdateMode.value) {
+    fieldSelector.push(`metadata.name!=${formState.value.metadata.name}`);
+  }
+
+  const { data: postsWithSameSlug } = await coreApiClient.content.post.listPost(
+    {
+      fieldSelector,
+      page: 1,
+      size: 1,
+    }
+  );
+
+  return !postsWithSameSlug.total;
+}
 
 // Buttons condition
 const showPublishButton = computed(() => {
@@ -315,14 +358,20 @@ const showCancelPublishButton = computed(() => {
               :label="$t('core.post.settings.fields.title.label')"
               type="text"
               name="title"
-              validation="required|length:0,100"
+              validation="required|length:0,1024"
             ></FormKit>
             <FormKit
               v-model="formState.spec.slug"
               :label="$t('core.post.settings.fields.slug.label')"
               name="slug"
               type="text"
-              validation="required|length:0,100"
+              validation="required|length:0,1024|slugUniqueValidation"
+              :validation-rules="{ slugUniqueValidation }"
+              :validation-messages="{
+                slugUniqueValidation: $t(
+                  'core.common.form.validation.slug_unique'
+                ),
+              }"
               :help="$t('core.post.settings.fields.slug.help')"
             >
               <template #suffix>
@@ -331,7 +380,7 @@ const showCancelPublishButton = computed(() => {
                     $t('core.post.settings.fields.slug.refresh_message')
                   "
                   class="group flex h-full cursor-pointer items-center border-l px-3 transition-all hover:bg-gray-100"
-                  @click="handleGenerateSlug(true, FormType.POST)"
+                  @click="handleGenerateSlug(true)"
                 >
                   <IconRefreshLine
                     class="h-4 w-4 text-gray-500 group-hover:text-gray-700"
@@ -355,15 +404,11 @@ const showCancelPublishButton = computed(() => {
             />
             <FormKit
               v-model="formState.spec.excerpt.autoGenerate"
-              :options="[
-                { label: $t('core.common.radio.yes'), value: true },
-                { label: $t('core.common.radio.no'), value: false },
-              ]"
               name="autoGenerate"
               :label="
                 $t('core.post.settings.fields.auto_generate_excerpt.label')
               "
-              type="radio"
+              type="checkbox"
             >
             </FormKit>
             <FormKit
@@ -372,7 +417,18 @@ const showCancelPublishButton = computed(() => {
               :label="$t('core.post.settings.fields.raw_excerpt.label')"
               name="raw"
               type="textarea"
-              :rows="5"
+              auto-height
+              :max-auto-height="200"
+              validation="length:0,1024"
+            ></FormKit>
+            <FormKit
+              v-model="formState.spec.cover"
+              name="cover"
+              width="50%"
+              aspect-ratio="16/9"
+              :label="$t('core.post.settings.fields.cover.label')"
+              type="attachment"
+              :accepts="['image/*']"
               validation="length:0,1024"
             ></FormKit>
           </div>
@@ -392,28 +448,21 @@ const showCancelPublishButton = computed(() => {
           </div>
           <div class="mt-5 divide-y divide-gray-100 md:col-span-3 md:mt-0">
             <FormKit
+              v-if="utils.permission.has(['system:users:view'])"
               v-model="formState.spec.owner"
               :label="$t('core.post.settings.fields.owner.label')"
               type="userSelect"
             ></FormKit>
             <FormKit
               v-model="formState.spec.allowComment"
-              :options="[
-                { label: $t('core.common.radio.yes'), value: true },
-                { label: $t('core.common.radio.no'), value: false },
-              ]"
               :label="$t('core.post.settings.fields.allow_comment.label')"
-              type="radio"
+              type="checkbox"
             ></FormKit>
             <FormKit
               v-model="formState.spec.pinned"
-              :options="[
-                { label: $t('core.common.radio.yes'), value: true },
-                { label: $t('core.common.radio.no'), value: false },
-              ]"
               :label="$t('core.post.settings.fields.pinned.label')"
               name="pinned"
-              type="radio"
+              type="checkbox"
             ></FormKit>
             <FormKit
               v-model="formState.spec.visible"
@@ -439,17 +488,10 @@ const showCancelPublishButton = computed(() => {
             <FormKit
               v-model="formState.spec.template"
               :options="templates"
+              :disabled="templatesLoading || templatesError"
               :label="$t('core.post.settings.fields.template.label')"
               name="template"
               type="select"
-            ></FormKit>
-            <FormKit
-              v-model="formState.spec.cover"
-              name="cover"
-              :label="$t('core.post.settings.fields.cover.label')"
-              type="attachment"
-              :accepts="['image/*']"
-              validation="length:0,1024"
             ></FormKit>
           </div>
         </div>
@@ -474,6 +516,7 @@ const showCancelPublishButton = computed(() => {
           ref="annotationsFormRef"
           :value="formState.metadata.annotations"
           kind="Post"
+          :form-data="formState"
           group="content.halo.run"
         />
       </div>
@@ -510,6 +553,7 @@ const showCancelPublishButton = computed(() => {
           v-if="showCancelPublishButton"
           :loading="publishCanceling"
           type="danger"
+          ghost
           @click="handleUnpublish()"
         >
           {{ $t("core.common.buttons.cancel_publish") }}

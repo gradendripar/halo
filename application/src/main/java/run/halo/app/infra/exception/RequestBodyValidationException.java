@@ -3,14 +3,16 @@ package run.halo.app.infra.exception;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.ProblemDetail;
-import org.springframework.lang.Nullable;
 import org.springframework.validation.Errors;
 import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.BindErrorUtils;
 
+@Getter
 public class RequestBodyValidationException extends ServerWebInputException {
 
     private final Errors errors;
@@ -53,11 +55,10 @@ public class RequestBodyValidationException extends ServerWebInputException {
     }
 
     private static List<String> resolveErrors(
-        List<? extends MessageSourceResolvable> errors,
-        @Nullable MessageSource messageSource,
-        Locale locale) {
+            List<? extends MessageSourceResolvable> errors, @Nullable MessageSource messageSource, Locale locale) {
         return messageSource == null
-            ? BindErrorUtils.resolve(errors).values().stream().toList()
-            : BindErrorUtils.resolve(errors, messageSource, locale).values().stream().toList();
+                ? BindErrorUtils.resolve(errors).values().stream().toList()
+                : BindErrorUtils.resolve(errors, messageSource, locale).values().stream()
+                        .toList();
     }
 }

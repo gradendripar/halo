@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-import { contentAnnotations } from "@/constants/annotations";
-import { randomUUID } from "@/utils/id";
 import type { Content, Post } from "@halo-dev/api-client";
 import { ucApiClient } from "@halo-dev/api-client";
 import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
+import { utils } from "@halo-dev/ui-shared";
 import { useMutation } from "@tanstack/vue-query";
-import { ref } from "vue";
+import { nextTick, ref, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
+import type AnnotationsForm from "@/components/form/AnnotationsForm.vue";
+import { contentAnnotations } from "@/constants/annotations";
+import { usePostPublishMutate } from "../composables/use-post-publish-mutate";
 import type { PostFormState } from "../types";
 import PostSettingForm from "./PostSettingForm.vue";
 
@@ -31,17 +33,26 @@ const emit = defineEmits<{
 
 const modal = ref<InstanceType<typeof VModal> | null>(null);
 
+const { mutateAsync: postPublishMutate } = usePostPublishMutate();
+
 const { mutate, isLoading } = useMutation({
   mutationKey: ["uc:create-post"],
-  mutationFn: async ({ data }: { data: PostFormState }) => {
+  mutationFn: async ({
+    data,
+    annotations,
+  }: {
+    data: PostFormState;
+    annotations: { [key: string]: string };
+  }) => {
     const post: Post = {
       apiVersion: "content.halo.run/v1alpha1",
       kind: "Post",
       metadata: {
         annotations: {
+          ...annotations,
           [contentAnnotations.CONTENT_JSON]: JSON.stringify(props.content),
         },
-        name: randomUUID(),
+        name: utils.id.uuid(),
       },
       spec: {
         allowComment: data.allowComment,
@@ -53,7 +64,7 @@ const { mutate, isLoading } = useMutation({
           raw: data.excerptRaw,
         },
         htmlMetas: [],
-        pinned: data.pinned,
+        pinned: false,
         priority: 0,
         publish: false,
         publishTime: data.publishTime,
@@ -69,9 +80,7 @@ const { mutate, isLoading } = useMutation({
     });
 
     if (props.publish) {
-      await ucApiClient.content.post.publishMyPost({
-        name: post.metadata.name,
-      });
+      await postPublishMutate({ name: post.metadata.name });
     }
 
     return createdPost;
@@ -95,8 +104,27 @@ const { mutate, isLoading } = useMutation({
   },
 });
 
-function onSubmit(data: PostFormState) {
-  mutate({ data });
+const annotationsFormRef =
+  useTemplateRef<InstanceType<typeof AnnotationsForm>>("annotationsFormRef");
+
+async function onSubmit(data: PostFormState) {
+  annotationsFormRef.value?.handleSubmit();
+  await nextTick();
+
+  const { customAnnotations, annotations, customFormInvalid, specFormInvalid } =
+    annotationsFormRef.value || {};
+
+  if (customFormInvalid || specFormInvalid) {
+    return;
+  }
+
+  mutate({
+    data,
+    annotations: {
+      ...annotations,
+      ...customAnnotations,
+    },
+  });
 }
 </script>
 
@@ -114,11 +142,34 @@ function onSubmit(data: PostFormState) {
         slug: props.post.spec.slug,
         allowComment: props.post.spec.allowComment,
         visible: props.post.spec.visible,
-        pinned: props.post.spec.pinned,
         excerptAutoGenerate: props.post.spec.excerpt.autoGenerate,
       }"
       @submit="onSubmit"
     />
+
+    <div class="py-5">
+      <div class="border-t border-gray-200"></div>
+    </div>
+
+    <div class="md:grid md:grid-cols-4 md:gap-6">
+      <div class="md:col-span-1">
+        <div class="sticky top-0">
+          <span class="text-base font-medium text-gray-900">
+            {{ $t("core.post.settings.groups.annotations") }}
+          </span>
+        </div>
+      </div>
+      <div class="mt-5 divide-y divide-gray-100 md:col-span-3 md:mt-0">
+        <AnnotationsForm
+          :key="post.metadata.name"
+          ref="annotationsFormRef"
+          :value="post.metadata.annotations || {}"
+          kind="Post"
+          :form-data="post"
+          group="content.halo.run"
+        />
+      </div>
+    </div>
 
     <template #footer>
       <VSpace>

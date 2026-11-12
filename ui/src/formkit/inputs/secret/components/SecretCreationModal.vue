@@ -1,30 +1,64 @@
 <script lang="ts" setup>
-import { secretAnnotations } from "@/constants/annotations";
 import { coreApiClient } from "@halo-dev/api-client";
-import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
+import { VButton, VModal, VSpace } from "@halo-dev/components";
+import { utils } from "@halo-dev/ui-shared";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import { ref } from "vue";
-import { useI18n } from "vue-i18n";
+import { computed, ref } from "vue";
+import { secretAnnotations } from "@/constants/annotations";
 import { Q_KEY } from "../composables/use-secrets-fetch";
-import type { SecretFormState } from "../types";
+import type { RequiredKey, SecretFormState } from "../types";
 import SecretForm from "./SecretForm.vue";
 
-const { t } = useI18n();
 const queryClient = useQueryClient();
+
+const props = withDefaults(
+  defineProps<{
+    descriptionPreset?: string;
+    formState?: SecretFormState;
+    requiredKeys?: RequiredKey[];
+  }>(),
+  { descriptionPreset: undefined, formState: undefined, requiredKeys: () => [] }
+);
 
 const emit = defineEmits<{
   (event: "close"): void;
+  (event: "created", secretName: string): void;
 }>();
 
 const modal = ref<InstanceType<typeof VModal> | null>(null);
 
+const initialFormState = computed<SecretFormState | undefined>(() => {
+  if (props.formState) {
+    return props.formState;
+  }
+
+  const descriptionPreset = props.descriptionPreset?.trim();
+
+  if (!descriptionPreset) {
+    return;
+  }
+
+  return {
+    description: `${descriptionPreset} - ${utils.date.format(new Date())}`,
+    stringDataArray: props.requiredKeys.map((key) => ({
+      key: key.key,
+      value: "",
+    })),
+  };
+});
+
 const { mutate, isLoading } = useMutation({
   mutationKey: ["create-secret"],
   mutationFn: async ({ data }: { data: SecretFormState }) => {
-    const stringData = data.stringDataArray.reduce((acc, { key, value }) => {
-      acc[key] = value;
-      return acc;
-    }, {} as Record<string, string>);
+    const stringData = data.stringDataArray
+      .filter(({ key }) => !!key)
+      .reduce(
+        (acc, { key, value }) => {
+          acc[key] = value || "";
+          return acc;
+        },
+        {} as Record<string, string>
+      );
 
     return await coreApiClient.secret.createSecret({
       secret: {
@@ -32,7 +66,7 @@ const { mutate, isLoading } = useMutation({
           generateName: "secret-",
           name: "",
           annotations: {
-            [secretAnnotations.DESCRIPTION]: data.description + "",
+            [secretAnnotations.DESCRIPTION]: data.description || "",
           },
         },
         kind: "Secret",
@@ -42,9 +76,9 @@ const { mutate, isLoading } = useMutation({
       },
     });
   },
-  onSuccess() {
+  onSuccess(data) {
     queryClient.invalidateQueries({ queryKey: Q_KEY() });
-    Toast.success(t("core.common.toast.save_success"));
+    emit("created", data.data.metadata.name);
     modal.value?.close();
   },
 });
@@ -57,11 +91,17 @@ function onSubmit(data: SecretFormState) {
 <template>
   <VModal
     ref="modal"
+    mount-to-body
     :title="$t('core.formkit.secret.creation_modal.title')"
     :width="600"
+    :centered="false"
     @close="emit('close')"
   >
-    <SecretForm @submit="onSubmit" />
+    <SecretForm
+      :form-state="initialFormState"
+      :required-keys="requiredKeys"
+      @submit="onSubmit"
+    />
 
     <template #footer>
       <VSpace>

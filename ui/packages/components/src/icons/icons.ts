@@ -12,6 +12,7 @@ import IconArrowUpLine from "~icons/ri/arrow-up-s-line";
 import IconBookRead from "~icons/ri/book-read-line";
 import IconCalendar from "~icons/ri/calendar-line";
 import IconCharacterRecognition from "~icons/ri/character-recognition-line";
+import IconCheck from "~icons/ri/check-line";
 import IconCheckboxFill from "~icons/ri/checkbox-circle-fill";
 import IconCheckboxCircle from "~icons/ri/checkbox-circle-line";
 import IconClipboardLine from "~icons/ri/clipboard-line";
@@ -64,6 +65,7 @@ import IconStopCircle from "~icons/ri/stop-circle-line";
 import IconTablet from "~icons/ri/tablet-line";
 import IconTeam from "~icons/ri/team-fill";
 import IconTerminalBoxLine from "~icons/ri/terminal-box-line";
+import IconThumbUpLine from "~icons/ri/thumb-up-line";
 import IconTimerLine from "~icons/ri/timer-line";
 import IconToolsFill from "~icons/ri/tools-fill";
 import IconRiUpload2Fill from "~icons/ri/upload-2-fill";
@@ -90,6 +92,7 @@ export {
   IconBookRead,
   IconCalendar,
   IconCharacterRecognition,
+  IconCheck,
   IconCheckboxCircle,
   IconCheckboxFill,
   IconClipboardLine,
@@ -143,6 +146,7 @@ export {
   IconTablet,
   IconTeam,
   IconTerminalBoxLine,
+  IconThumbUpLine,
   IconTimerLine,
   IconToolsFill,
   IconUpload,

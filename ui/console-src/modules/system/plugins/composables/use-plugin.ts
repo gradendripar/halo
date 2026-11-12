@@ -3,27 +3,34 @@ import {
   consoleApiClient,
   coreApiClient,
   type Plugin,
+  type SettingForm,
 } from "@halo-dev/api-client";
-import type { ComputedRef, Ref } from "vue";
-import { computed } from "vue";
-
-import { Dialog, Toast } from "@halo-dev/components";
-import { useMutation } from "@tanstack/vue-query";
+import { Dialog, Toast, VLoading } from "@halo-dev/components";
+import { utils, type PluginTab } from "@halo-dev/ui-shared";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useRouteQuery } from "@vueuse/router";
+import type { Ref } from "vue";
+import { computed, defineAsyncComponent, ref, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
+import { usePluginModuleStore } from "@/stores/plugin";
 
-interface usePluginLifeCycleReturn {
-  isStarted: ComputedRef<boolean | undefined>;
-  getStatusDotState: () => string;
-  getStatusMessage: () => string | undefined;
-  changeStatus: () => void;
-  changingStatus: Ref<boolean>;
-  uninstall: (deleteExtensions?: boolean) => void;
+export function getPluginStatusRefetchInterval(
+  enabled: boolean | undefined,
+  phase: PluginStatusPhaseEnum | undefined
+) {
+  if (
+    enabled &&
+    phase !== PluginStatusPhaseEnum.Started &&
+    phase !== PluginStatusPhaseEnum.Failed
+  ) {
+    return 1000;
+  }
+  return false;
 }
 
-export function usePluginLifeCycle(
-  plugin?: Ref<Plugin | undefined>
-): usePluginLifeCycleReturn {
+export function usePluginLifeCycle(plugin?: Ref<Plugin | undefined>) {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
 
   const isStarted = computed(() => {
     return (
@@ -94,7 +101,63 @@ export function usePluginLifeCycle(
     },
   });
 
-  const uninstall = (deleteExtensions?: boolean) => {
+  function reload() {
+    Dialog.warning({
+      title: t("core.plugin.operations.reload.title"),
+      description: t("core.plugin.operations.reload.description"),
+      confirmType: "danger",
+      confirmText: t("core.common.buttons.confirm"),
+      cancelText: t("core.common.buttons.cancel"),
+      onConfirm: async () => {
+        if (!plugin?.value) {
+          return;
+        }
+
+        await consoleApiClient.plugin.plugin.reloadPlugin({
+          name: plugin.value.metadata.name,
+        });
+
+        Toast.success(t("core.plugin.operations.reload.toast_success"));
+
+        await queryClient.invalidateQueries({
+          queryKey: ["plugins"],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["plugin", plugin.value.metadata.name],
+        });
+      },
+    });
+  }
+
+  function resetPluginConfig() {
+    Dialog.warning({
+      title: t("core.plugin.operations.reset.title"),
+      description: t("core.plugin.operations.reset.description"),
+      confirmType: "danger",
+      confirmText: t("core.common.buttons.confirm"),
+      cancelText: t("core.common.buttons.cancel"),
+      onConfirm: async () => {
+        if (!plugin?.value) {
+          return;
+        }
+
+        await consoleApiClient.plugin.plugin.resetPluginConfig({
+          name: plugin.value.metadata.name,
+        });
+
+        await queryClient.invalidateQueries({
+          queryKey: ["core:plugin:configMap:data"],
+        });
+
+        Toast.success(t("core.plugin.operations.reset.toast_success"));
+      },
+    });
+  }
+
+  const uninstall = ({
+    deleteExtensions,
+    onSuccess,
+  }: { deleteExtensions?: boolean; onSuccess?: () => void } = {}) => {
     if (!plugin?.value) return;
 
     const { enabled } = plugin.value.spec;
@@ -120,51 +183,47 @@ export function usePluginLifeCycle(
       onConfirm: async () => {
         if (!plugin.value) return;
 
-        try {
-          await consoleApiClient.plugin.plugin.changePluginRunningState({
-            name: plugin.value.metadata.name,
-            pluginRunningStateRequest: {
-              enable: false,
-            },
-          });
+        await consoleApiClient.plugin.plugin.changePluginRunningState({
+          name: plugin.value.metadata.name,
+          pluginRunningStateRequest: {
+            enable: false,
+          },
+        });
 
-          await coreApiClient.plugin.plugin.deletePlugin({
-            name: plugin.value.metadata.name,
-          });
+        await coreApiClient.plugin.plugin.deletePlugin({
+          name: plugin.value.metadata.name,
+        });
 
-          // delete plugin setting and configMap
-          if (deleteExtensions) {
-            const { settingName, configMapName } = plugin.value.spec;
+        // delete plugin setting and configMap
+        if (deleteExtensions) {
+          const { settingName, configMapName } = plugin.value.spec;
 
-            if (settingName) {
-              await coreApiClient.setting.deleteSetting(
-                {
-                  name: settingName,
-                },
-                {
-                  mute: true,
-                }
-              );
-            }
-
-            if (configMapName) {
-              await coreApiClient.configMap.deleteConfigMap(
-                {
-                  name: configMapName,
-                },
-                {
-                  mute: true,
-                }
-              );
-            }
+          if (settingName) {
+            await coreApiClient.setting.deleteSetting(
+              {
+                name: settingName,
+              },
+              {
+                mute: true,
+              }
+            );
           }
 
-          Toast.success(t("core.common.toast.uninstall_success"));
-        } catch (e) {
-          console.error("Failed to uninstall plugin", e);
-        } finally {
-          window.location.reload();
+          if (configMapName) {
+            await coreApiClient.configMap.deleteConfigMap(
+              {
+                name: configMapName,
+              },
+              {
+                mute: true,
+              }
+            );
+          }
         }
+
+        Toast.success(t("core.common.toast.uninstall_success"));
+
+        onSuccess?.();
       },
     });
   };
@@ -175,7 +234,9 @@ export function usePluginLifeCycle(
     getStatusMessage,
     changeStatus,
     changingStatus,
+    reload,
     uninstall,
+    resetPluginConfig,
   };
 }
 
@@ -269,4 +330,113 @@ export function usePluginBatchOperations(names: Ref<string[]>) {
   }
 
   return { handleUninstallInBatch, handleChangeStatusInBatch };
+}
+
+export function usePluginDetailTabs(
+  pluginName: Ref<string | undefined>,
+  recordsActiveTab: boolean
+) {
+  const { t } = useI18n();
+
+  const initialTabs = [
+    {
+      id: "detail",
+      label: t("core.plugin.tabs.detail"),
+      component: defineAsyncComponent({
+        loader: () => import("../components/tabs/Detail.vue"),
+        loadingComponent: VLoading,
+      }),
+    },
+  ];
+
+  const tabs = shallowRef<PluginTab[]>(initialTabs);
+  const activeTab = recordsActiveTab
+    ? useRouteQuery<string>("tab", tabs.value[0].id)
+    : ref(tabs.value[0].id);
+
+  const { data: plugin } = useQuery({
+    queryKey: ["plugin", pluginName],
+    queryFn: async () => {
+      const { data } = await coreApiClient.plugin.plugin.getPlugin({
+        name: pluginName.value as string,
+      });
+      return data;
+    },
+    async onSuccess(data) {
+      if (
+        !data.spec.settingName ||
+        !utils.permission.has(["system:plugins:manage"])
+      ) {
+        tabs.value = [...initialTabs, ...(await getTabsFromExtensions())];
+      }
+    },
+    refetchInterval: (data) =>
+      getPluginStatusRefetchInterval(data?.spec.enabled, data?.status?.phase),
+  });
+
+  const { data: setting } = useQuery({
+    queryKey: ["plugin-setting", plugin],
+    queryFn: async () => {
+      const { data } = await consoleApiClient.plugin.plugin.fetchPluginSetting({
+        name: plugin.value?.metadata.name as string,
+      });
+      return data;
+    },
+    enabled: computed(() => {
+      return (
+        !!plugin.value &&
+        !!plugin.value.spec.settingName &&
+        utils.permission.has(["system:plugins:manage"])
+      );
+    }),
+    async onSuccess(data) {
+      if (data) {
+        const { forms } = data.spec;
+        tabs.value = [
+          ...initialTabs,
+          ...(await getTabsFromExtensions()),
+          ...forms.map((item: SettingForm) => {
+            return {
+              id: item.group,
+              label: item.label || "",
+              component: defineAsyncComponent({
+                loader: () => import("../components/tabs/Setting.vue"),
+                loadingComponent: VLoading,
+              }),
+            };
+          }),
+        ] as PluginTab[];
+      }
+    },
+  });
+
+  async function getTabsFromExtensions() {
+    const { pluginModuleMap } = usePluginModuleStore();
+
+    const currentPluginModule = pluginModuleMap[pluginName.value as string];
+
+    if (!currentPluginModule) {
+      return [];
+    }
+
+    const callbackFunction =
+      currentPluginModule?.extensionPoints?.["plugin:self:tabs:create"];
+
+    if (typeof callbackFunction !== "function") {
+      return [];
+    }
+
+    const pluginTabs = await callbackFunction();
+
+    return pluginTabs.filter((tab) => {
+      return utils.permission.has(tab.permissions || []);
+    });
+  }
+
+  return {
+    plugin,
+    setting,
+    tabs,
+    activeTab,
+  };
 }

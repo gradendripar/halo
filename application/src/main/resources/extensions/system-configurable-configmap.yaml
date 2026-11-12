@@ -7,8 +7,19 @@ data:
     {
       "allowRegistration": false,
       "mustVerifyEmailOnRegistration": false,
-      "defaultRole": "guest",
-      "avatarPolicy": "default-policy"
+      "defaultRole": "guest"
+    }
+  attachment: |
+    {
+      "console": {
+        "policyName": "default-policy"
+      },
+      "uc": {
+        "policyName": "default-policy"
+      },
+      "avatar": {
+        "policyName": "default-policy"
+      }
     }
   theme: |
     {
@@ -33,8 +44,8 @@ data:
       "archivePageSize": 10,
       "categoryPageSize": 10,
       "tagPageSize": 10,
-      "slugGenerationStrategy": "generateByTitle",
-      "attachmentPolicyName": "default-policy"
+      "authorPageSize": 10,
+      "slugGenerationStrategy": "generateByTitle"
     }
   comment: |
     {
@@ -49,4 +60,12 @@ data:
   extensionPointEnabled: |
     {
       "search-engine": ["search-engine-lucene"]
+    }
+  authProvider: |
+    {
+      "states": [{
+          "name": "local",
+          "enabled": true,
+          "priority": 0
+      }]
     }

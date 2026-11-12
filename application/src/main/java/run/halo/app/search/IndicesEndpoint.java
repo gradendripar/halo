@@ -1,5 +1,7 @@
 package run.halo.app.search;
 
+import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.context.ApplicationEventPublisher;
@@ -28,32 +30,25 @@ public class IndicesEndpoint implements CustomEndpoint {
     public RouterFunction<ServerResponse> endpoint() {
         final var tag = "IndicesV1alpha1Console";
         return SpringdocRouteBuilder.route()
-            .POST("indices/post", this::rebuildIndices,
-                builder -> builder.operationId("BuildPostIndices")
-                    .tag(tag)
-                    .deprecated(true)
-                    .description("""
-                        Build or rebuild post indices for full text search. \
-                        This method is deprecated, please use POST /indices/-/rebuild instead.\
-                        """)
-            )
-            .POST("/indices/-/rebuild", this::rebuildIndices,
-                builder -> builder.operationId("RebuildAllIndices")
-                    .tag(tag)
-                    .description("Rebuild all indices")
-            )
-            .build();
+                .POST(
+                        "/indices/-/rebuild",
+                        this::rebuildIndices,
+                        builder -> builder.operationId("RebuildAllIndices")
+                                .tag(tag)
+                                .description("Submit a request to rebuild all search indices.")
+                                .response(responseBuilder()
+                                        .responseCode("202")
+                                        .description("Accepted, rebuild request has been submitted.")))
+                .build();
     }
 
     private Mono<ServerResponse> rebuildIndices(ServerRequest serverRequest) {
-        return Mono.fromRunnable(
-            () -> eventPublisher.publishEvent(new HaloDocumentRebuildRequestEvent(this))
-        ).then(ServerResponse.accepted().build());
+        return Mono.fromRunnable(() -> eventPublisher.publishEvent(new HaloDocumentRebuildRequestEvent(this)))
+                .then(ServerResponse.accepted().build());
     }
 
     @Override
     public GroupVersion groupVersion() {
         return GroupVersion.parseAPIVersion(API_VERSION);
     }
-
 }

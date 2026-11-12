@@ -5,18 +5,10 @@ import static org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE_OR_APPEN
 import static org.apache.lucene.search.BooleanClause.Occur.FILTER;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilterFactory;
@@ -26,25 +18,12 @@ import org.apache.lucene.analysis.cjk.CJKWidthFilterFactory;
 import org.apache.lucene.analysis.core.LowerCaseFilterFactory;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
 import org.apache.lucene.analysis.standard.StandardTokenizerFactory;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.LongField;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.DocValuesType;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.document.*;
+import org.apache.lucene.index.*;
+import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.FuzzyQuery;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.SearcherManager;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.TermInSetQuery;
-import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryTermScorer;
@@ -56,9 +35,9 @@ import org.apache.lucene.util.IOUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.lang.NonNull;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
+import reactor.core.Exceptions;
 import run.halo.app.search.HaloDocument;
 import run.halo.app.search.SearchEngine;
 import run.halo.app.search.SearchOption;
@@ -69,21 +48,17 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
 
     private final Path indexRootDir;
 
-    private final Converter<HaloDocument, Document> haloDocumentConverter =
-        new HaloDocumentConverter();
+    private final Converter<HaloDocument, Document> haloDocumentConverter = new HaloDocumentConverter();
 
-    private final Converter<Document, HaloDocument> documentConverter =
-        new DocumentConverter();
+    private final Converter<Document, HaloDocument> documentConverter = new DocumentConverter();
 
     private Analyzer analyzer;
 
-    private IndexWriter indexWriter;
-
-    private SearcherManager searcherManager;
+    private volatile SearcherManager searcherManager;
 
     private Directory directory;
 
-    public LuceneSearchEngine(Path indexRootDir) throws IOException {
+    public LuceneSearchEngine(Path indexRootDir) {
         this.indexRootDir = indexRootDir;
     }
 
@@ -102,12 +77,16 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             docs.add(doc);
         });
         var deleteQuery = new TermInSetQuery("id", terms);
-        try {
-            this.indexWriter.updateDocuments(deleteQuery, docs);
-            this.searcherManager.maybeRefreshBlocking();
-            this.indexWriter.commit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+
+        var writerConfig = new IndexWriterConfig(this.analyzer).setOpenMode(CREATE_OR_APPEND);
+        synchronized (this) {
+            try (var indexWriter = new IndexWriter(this.directory, writerConfig)) {
+                indexWriter.updateDocuments(deleteQuery, docs);
+            } catch (IOException e) {
+                throw Exceptions.propagate(e);
+            } finally {
+                this.refreshSearcherManager();
+            }
         }
     }
 
@@ -116,29 +95,45 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
         var terms = new LinkedList<BytesRef>();
         haloDocIds.forEach(haloDocId -> terms.add(new BytesRef(haloDocId)));
         var deleteQuery = new TermInSetQuery("id", terms);
-        try {
-            this.indexWriter.deleteDocuments(deleteQuery);
-            this.searcherManager.maybeRefreshBlocking();
-            this.indexWriter.commit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        var writerConfig = new IndexWriterConfig(this.analyzer).setOpenMode(CREATE_OR_APPEND);
+        synchronized (this) {
+            try (var indexWriter = new IndexWriter(this.directory, writerConfig)) {
+                indexWriter.deleteDocuments(deleteQuery);
+            } catch (IOException e) {
+                throw Exceptions.propagate(e);
+            } finally {
+                this.refreshSearcherManager();
+            }
         }
     }
 
     @Override
     public void deleteAll() {
-        try {
-            this.indexWriter.deleteAll();
-            this.searcherManager.maybeRefreshBlocking();
-            this.indexWriter.commit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        var writerConfig = new IndexWriterConfig(this.analyzer).setOpenMode(CREATE_OR_APPEND);
+        synchronized (this) {
+            try (var indexWriter = new IndexWriter(this.directory, writerConfig)) {
+                indexWriter.deleteAll();
+            } catch (IOException e) {
+                throw Exceptions.propagate(e);
+            } finally {
+                this.refreshSearcherManager();
+            }
         }
     }
 
     @Override
     public SearchResult search(SearchOption option) {
         IndexSearcher searcher = null;
+        var sm = obtainSearcherManager();
+        if (sm.isEmpty()) {
+            // indicate the index is empty
+            var emptyResult = new SearchResult();
+            emptyResult.setKeyword(option.getKeyword());
+            emptyResult.setLimit(option.getLimit());
+            emptyResult.setTotal(0L);
+            emptyResult.setHits(List.of());
+            return emptyResult;
+        }
         try {
             searcher = searcherManager.acquire();
             var queryParser = new StandardQueryParser(analyzer);
@@ -148,28 +143,54 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             queryParser.setFuzzyPrefixLength(FuzzyQuery.defaultPrefixLength);
 
             var keyword = option.getKeyword();
-            var query = queryParser.parse(keyword, null);
-            var queryBuilder = new BooleanQuery.Builder()
-                .add(query, MUST);
+            var escapedKeyword = QueryParserBase.escape(keyword);
+            var query = queryParser.parse(escapedKeyword, null);
+            var queryBuilder = new BooleanQuery.Builder().add(query, MUST);
 
             var filterExposed = option.getFilterExposed();
             if (filterExposed != null) {
-                queryBuilder.add(
-                    new TermQuery(new Term("exposed", filterExposed.toString())), FILTER
-                );
+                queryBuilder.add(new TermQuery(new Term("exposed", filterExposed.toString())), FILTER);
             }
             var filterRecycled = option.getFilterRecycled();
             if (filterRecycled != null) {
-                queryBuilder.add(
-                    new TermQuery(new Term("recycled", filterRecycled.toString())), FILTER
-                );
+                queryBuilder.add(new TermQuery(new Term("recycled", filterRecycled.toString())), FILTER);
             }
             var filterPublished = option.getFilterPublished();
             if (filterPublished != null) {
-                queryBuilder.add(
-                    new TermQuery(new Term("published", filterPublished.toString())), FILTER
-                );
+                queryBuilder.add(new TermQuery(new Term("published", filterPublished.toString())), FILTER);
             }
+
+            Optional.ofNullable(option.getIncludeTypes())
+                    .filter(types -> !types.isEmpty())
+                    .ifPresent(types -> {
+                        var typeTerms =
+                                types.stream().distinct().map(BytesRef::new).toList();
+                        queryBuilder.add(new TermInSetQuery("type", typeTerms), FILTER);
+                    });
+
+            Optional.ofNullable(option.getIncludeOwnerNames())
+                    .filter(ownerNames -> !ownerNames.isEmpty())
+                    .ifPresent(ownerNames -> {
+                        var ownerTerms = ownerNames.stream()
+                                .distinct()
+                                .map(BytesRef::new)
+                                .toList();
+                        queryBuilder.add(new TermInSetQuery("ownerName", ownerTerms), FILTER);
+                    });
+
+            Optional.ofNullable(option.getIncludeTagNames())
+                    .filter(tagNames -> !tagNames.isEmpty())
+                    .ifPresent(tagNames -> tagNames.stream()
+                            .distinct()
+                            .forEach(tagName -> queryBuilder.add(new TermQuery(new Term("tag", tagName)), FILTER)));
+
+            Optional.ofNullable(option.getIncludeCategoryNames())
+                    .filter(categoryNames -> !categoryNames.isEmpty())
+                    .ifPresent(categoryNames -> categoryNames.stream()
+                            .distinct()
+                            .forEach(categoryName ->
+                                    queryBuilder.add(new TermQuery(new Term("category", categoryName)), FILTER)));
+
             var finalQuery = queryBuilder.build();
             var limit = option.getLimit();
 
@@ -177,8 +198,7 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             stopWatch.start("search " + keyword);
             var hits = searcher.search(finalQuery, limit, Sort.RELEVANCE);
             stopWatch.stop();
-            var formatter =
-                new SimpleHTMLFormatter(option.getHighlightPreTag(), option.getHighlightPostTag());
+            var formatter = new SimpleHTMLFormatter(option.getHighlightPreTag(), option.getHighlightPostTag());
             var queryScorer = new QueryTermScorer(query);
             var highlighter = new Highlighter(formatter, queryScorer);
 
@@ -194,8 +214,10 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
                 }
 
                 var description = doc.get("description");
-                var hlDescription =
-                    highlighter.getBestFragment(this.analyzer, "description", description);
+                String hlDescription = null;
+                if (description != null) {
+                    hlDescription = highlighter.getBestFragment(this.analyzer, "description", description);
+                }
 
                 var content = doc.get("content");
                 var hlContent = highlighter.getBestFragment(this.analyzer, "content", content);
@@ -207,7 +229,7 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             }
             var result = new SearchResult();
             result.setHits(haloDocs);
-            result.setTotal(hits.totalHits.value);
+            result.setTotal(hits.totalHits.value());
             result.setKeyword(keyword);
             result.setLimit(limit);
             result.setProcessingTimeMillis(stopWatch.getTotalTimeMillis());
@@ -227,8 +249,7 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        try {
-            this.analyzer = CustomAnalyzer.builder()
+        this.analyzer = CustomAnalyzer.builder()
                 .withTokenizer(StandardTokenizerFactory.class)
                 .addCharFilter(HTMLStripCharFilterFactory.NAME)
                 .addCharFilter(CJKWidthCharFilterFactory.NAME)
@@ -236,19 +257,47 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
                 .addTokenFilter(CJKWidthFilterFactory.NAME)
                 .addTokenFilter(CJKBigramFilterFactory.NAME)
                 .build();
-            this.directory = FSDirectory.open(this.indexRootDir);
-            var writerConfig = new IndexWriterConfig(this.analyzer)
-                .setOpenMode(CREATE_OR_APPEND);
-            this.indexWriter = new IndexWriter(this.directory, writerConfig);
-            this.searcherManager = new SearcherManager(this.indexWriter, null);
-            log.info("Initialized lucene search engine");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        this.directory = FSDirectory.open(this.indexRootDir);
+        log.info("Initialized lucene search engine");
+    }
+
+    Optional<SearcherManager> obtainSearcherManager() {
+        if (this.searcherManager != null) {
+            return Optional.of(this.searcherManager);
+        }
+        synchronized (this) {
+            // double check
+            if (this.searcherManager != null) {
+                return Optional.of(this.searcherManager);
+            }
+            try {
+                this.searcherManager = new SearcherManager(this.directory, null);
+                return Optional.of(this.searcherManager);
+            } catch (IndexNotFoundException e) {
+                log.warn("Index not ready for creating searcher manager");
+            } catch (IOException e) {
+                log.error("Failed to create searcher manager", e);
+            }
+            return Optional.empty();
         }
     }
 
-    void setIndexWriter(IndexWriter indexWriter) {
-        this.indexWriter = indexWriter;
+    private void refreshSearcherManager() {
+        this.obtainSearcherManager().ifPresent(sm -> {
+            try {
+                sm.maybeRefreshBlocking();
+            } catch (IOException e) {
+                log.warn("Failed to refresh searcher", e);
+            }
+        });
+    }
+
+    Directory getDirectory() {
+        return directory;
+    }
+
+    Analyzer getAnalyzer() {
+        return analyzer;
     }
 
     void setDirectory(Directory directory) {
@@ -280,20 +329,19 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
         if (this.searcherManager != null) {
             closers.add(this.searcherManager);
         }
-        if (this.indexWriter != null) {
-            closers.add(this.indexWriter);
-        }
         if (this.directory != null) {
             closers.add(this.directory);
         }
         IOUtils.close(closers);
+        this.analyzer = null;
+        this.searcherManager = null;
+        this.directory = null;
         log.info("Destroyed lucene search engine");
     }
 
     private static class HaloDocumentConverter implements Converter<HaloDocument, Document> {
 
         @Override
-        @NonNull
         public Document convert(HaloDocument haloDoc) {
             var doc = new Document();
             doc.add(new StringField("id", haloDoc.getId(), YES));
@@ -310,7 +358,9 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             }
 
             doc.add(new TextField("title", haloDoc.getTitle(), YES));
-            doc.add(new TextField("description", haloDoc.getDescription(), YES));
+            if (haloDoc.getDescription() != null) {
+                doc.add(new TextField("description", haloDoc.getDescription(), YES));
+            }
             doc.add(new TextField("content", haloDoc.getContent(), YES));
             doc.add(new StringField("recycled", Boolean.toString(haloDoc.isRecycled()), YES));
             doc.add(new StringField("exposed", Boolean.toString(haloDoc.isExposed()), YES));
@@ -319,7 +369,7 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             var annotations = haloDoc.getAnnotations();
             if (annotations != null) {
                 try (var baos = new ByteArrayOutputStream();
-                     var oos = new ObjectOutputStream(baos)) {
+                        var oos = new ObjectOutputStream(baos)) {
                     oos.writeObject(annotations);
                     var type = new FieldType();
                     type.setStored(true);
@@ -335,7 +385,9 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             var creationTimestamp = haloDoc.getCreationTimestamp();
             doc.add(new LongField("creationTimestamp", creationTimestamp.toEpochMilli(), YES));
             var updateTimestamp = haloDoc.getUpdateTimestamp();
-            doc.add(new LongField("updateTimestamp", updateTimestamp.toEpochMilli(), YES));
+            if (updateTimestamp != null) {
+                doc.add(new LongField("updateTimestamp", updateTimestamp.toEpochMilli(), YES));
+            }
             doc.add(new StringField("permalink", haloDoc.getPermalink(), YES));
             return doc;
         }
@@ -344,10 +396,10 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
     private static class DocumentConverter implements Converter<Document, HaloDocument> {
 
         @Override
-        @NonNull
         public HaloDocument convert(Document doc) {
             var haloDoc = new HaloDocument();
             haloDoc.setId(doc.get("id"));
+            haloDoc.setType(doc.get("type"));
             haloDoc.setMetadataName(doc.get("name"));
             haloDoc.setTitle(doc.get("title"));
             haloDoc.setDescription(doc.get("description"));
@@ -363,7 +415,7 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
             var annotationsBytesRef = doc.getBinaryValue("annotations");
             if (annotationsBytesRef != null) {
                 try (var bais = new ByteArrayInputStream(annotationsBytesRef.bytes);
-                     var ois = new ObjectInputStream(bais)) {
+                        var ois = new ObjectInputStream(bais)) {
                     @SuppressWarnings("unchecked")
                     var annotations = (Map<String, String>) ois.readObject();
                     haloDoc.setAnnotations(annotations);
@@ -372,16 +424,19 @@ public class LuceneSearchEngine implements SearchEngine, InitializingBean, Dispo
                 }
             }
 
-            var creationTimestamp = doc.getField("creationTimestamp").numericValue().longValue();
+            var creationTimestamp =
+                    doc.getField("creationTimestamp").numericValue().longValue();
             haloDoc.setCreationTimestamp(Instant.ofEpochMilli(creationTimestamp));
-            var updateTimestamp = doc.getField("updateTimestamp").numericValue().longValue();
-            haloDoc.setUpdateTimestamp(Instant.ofEpochMilli(updateTimestamp));
+            var updateTimestampField = doc.getField("updateTimestamp");
+            if (updateTimestampField != null) {
+                var updateTimestamp = updateTimestampField.numericValue().longValue();
+                haloDoc.setUpdateTimestamp(Instant.ofEpochMilli(updateTimestamp));
+            }
             // handle content later
             return haloDoc;
         }
 
-        private static boolean getBooleanValue(Document doc, String fieldName,
-            boolean defaultValue) {
+        private static boolean getBooleanValue(Document doc, String fieldName, boolean defaultValue) {
             var boolStr = doc.get(fieldName);
             return boolStr == null ? defaultValue : Boolean.parseBoolean(boolStr);
         }

@@ -4,9 +4,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.security.authentication.RememberMeAuthenticationToken;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
 /**
@@ -29,33 +26,28 @@ public enum AuthorityUtils {
 
     public static final String COMMENT_MANAGEMENT_ROLE_NAME = "role-template-manage-comments";
 
+    public static final String POST_CONTRIBUTOR_ROLE_NAME = "role-template-post-contributor";
+
+    public static final String THEME_MANAGEMENT_ROLE_NAME = "role-template-manage-themes";
+
     /**
      * Converts an array of GrantedAuthority objects to a role set.
      *
-     * @return a Set of the Strings obtained from each call to
-     * GrantedAuthority.getAuthority() and filtered by prefix "ROLE_".
+     * @return a Set of the Strings obtained from each call to GrantedAuthority.getAuthority() and filtered by prefix
+     *     "ROLE_".
      */
-    public static Set<String> authoritiesToRoles(
-        Collection<? extends GrantedAuthority> authorities) {
+    public static Set<String> authoritiesToRoles(Collection<? extends GrantedAuthority> authorities) {
         return authorities.stream()
-            .map(GrantedAuthority::getAuthority)
-            .filter(authority -> StringUtils.startsWith(authority, ROLE_PREFIX))
-            .map(authority -> StringUtils.removeStart(authority, ROLE_PREFIX))
-            .collect(Collectors.toSet());
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> StringUtils.startsWith(authority, ROLE_PREFIX))
+                .map(authority -> {
+                    authority = StringUtils.removeStart(authority, ROLE_PREFIX);
+                    return authority;
+                })
+                .collect(Collectors.toSet());
     }
 
     public static boolean containsSuperRole(Collection<String> roles) {
         return roles.contains(SUPER_ROLE_NAME);
-    }
-
-    /**
-     * Check if the authentication is a real user.
-     *
-     * @param authentication current authentication
-     * @return true if the authentication is a real user; false otherwise
-     */
-    public static boolean isRealUser(Authentication authentication) {
-        return authentication instanceof UsernamePasswordAuthenticationToken
-            || authentication instanceof RememberMeAuthenticationToken;
     }
 }

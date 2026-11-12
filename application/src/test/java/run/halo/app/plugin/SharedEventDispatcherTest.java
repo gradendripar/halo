@@ -1,10 +1,6 @@
 package run.halo.app.plugin;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.*;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -12,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.pf4j.PluginManager;
+import org.pf4j.Plugin;
 import org.pf4j.PluginWrapper;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -23,7 +19,7 @@ import org.springframework.context.Lifecycle;
 class SharedEventDispatcherTest {
 
     @Mock
-    PluginManager pluginManager;
+    SpringPluginManager pluginManager;
 
     @Mock
     ApplicationEventPublisher publisher;
@@ -40,13 +36,12 @@ class SharedEventDispatcherTest {
     @Test
     void shouldDispatchEventToAllStartedPlugins() {
         var pw = mock(PluginWrapper.class);
-        var plugin = mock(SpringPlugin.class);
-        var context =
-            mock(ApplicationContext.class, withSettings().extraInterfaces(Lifecycle.class));
+        var plugin = mock(Plugin.class, withSettings().extraInterfaces(SpringPlugin.class));
+        var context = mock(ApplicationContext.class, withSettings().extraInterfaces(Lifecycle.class));
         when(((Lifecycle) context).isRunning()).thenReturn(true);
-        when(plugin.getApplicationContext()).thenReturn(context);
+        when(((SpringPlugin) plugin).getApplicationContext()).thenReturn(context);
         when(pw.getPlugin()).thenReturn(plugin);
-        when(pluginManager.getStartedPlugins()).thenReturn(List.of(pw));
+        when(pluginManager.startedPlugins()).thenReturn(List.of(pw));
 
         var event = new FakeSharedEvent(this);
         dispatcher.onApplicationEvent(event);
@@ -57,13 +52,12 @@ class SharedEventDispatcherTest {
     @Test
     void shouldNotDispatchEventToAllStartedPluginsWhilePluginContextIsNotRunning() {
         var pw = mock(PluginWrapper.class);
-        var plugin = mock(SpringPlugin.class);
-        var context =
-            mock(ApplicationContext.class, withSettings().extraInterfaces(Lifecycle.class));
+        var plugin = mock(Plugin.class, withSettings().extraInterfaces(SpringPlugin.class));
+        var context = mock(ApplicationContext.class, withSettings().extraInterfaces(Lifecycle.class));
         when(((Lifecycle) context).isRunning()).thenReturn(false);
-        when(plugin.getApplicationContext()).thenReturn(context);
+        when(((SpringPlugin) plugin).getApplicationContext()).thenReturn(context);
         when(pw.getPlugin()).thenReturn(plugin);
-        when(pluginManager.getStartedPlugins()).thenReturn(List.of(pw));
+        when(pluginManager.startedPlugins()).thenReturn(List.of(pw));
         var event = new FakeSharedEvent(this);
         dispatcher.onApplicationEvent(event);
         verify(context, never()).publishEvent(event);
@@ -72,11 +66,11 @@ class SharedEventDispatcherTest {
     @Test
     void shouldNotDispatchEventToAllStartedPluginsWhilePluginContextIsNotLifecycle() {
         var pw = mock(PluginWrapper.class);
-        var plugin = mock(SpringPlugin.class);
+        var plugin = mock(Plugin.class, withSettings().extraInterfaces(SpringPlugin.class));
         var context = mock(ApplicationContext.class);
-        when(plugin.getApplicationContext()).thenReturn(context);
+        when(((SpringPlugin) plugin).getApplicationContext()).thenReturn(context);
         when(pw.getPlugin()).thenReturn(plugin);
-        when(pluginManager.getStartedPlugins()).thenReturn(List.of(pw));
+        when(pluginManager.startedPlugins()).thenReturn(List.of(pw));
         var event = new FakeSharedEvent(this);
         dispatcher.onApplicationEvent(event);
         verify(context, never()).publishEvent(event);
@@ -94,7 +88,6 @@ class SharedEventDispatcherTest {
         public FakeEvent(Object source) {
             super(source);
         }
-
     }
 
     @SharedEvent
@@ -103,6 +96,5 @@ class SharedEventDispatcherTest {
         public FakeSharedEvent(Object source) {
             super(source);
         }
-
     }
 }

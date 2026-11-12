@@ -25,7 +25,6 @@ const emit = defineEmits<{
 }>();
 
 const queryClient = useQueryClient();
-
 const defaultGroups: Group[] = [
   {
     spec: {

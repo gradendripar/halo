@@ -1,6 +1,5 @@
 package run.halo.app.security.authentication.rememberme;
 
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.MessageSource;
@@ -15,18 +14,18 @@ import org.springframework.util.Assert;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
-public class RememberMeAuthenticationManager implements ReactiveAuthenticationManager,
-    InitializingBean, MessageSourceAware {
+public class RememberMeAuthenticationManager
+        implements ReactiveAuthenticationManager, InitializingBean, MessageSourceAware {
 
     private final CookieSignatureKeyResolver cookieSignatureKeyResolver;
     protected MessageSourceAccessor messages = SpringSecurityMessageSource.getAccessor();
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
-        if (authentication instanceof RememberMeAuthenticationToken rememberMeAuthenticationToken) {
-            return doAuthenticate(rememberMeAuthenticationToken);
-        }
-        return Mono.empty();
+        return Mono.justOrEmpty(authentication)
+                .filter(RememberMeAuthenticationToken.class::isInstance)
+                .cast(RememberMeAuthenticationToken.class)
+                .flatMap(this::doAuthenticate);
     }
 
     @Override
@@ -35,22 +34,21 @@ public class RememberMeAuthenticationManager implements ReactiveAuthenticationMa
     }
 
     @Override
-    public void setMessageSource(@NonNull MessageSource messageSource) {
+    public void setMessageSource(MessageSource messageSource) {
         this.messages = new MessageSourceAccessor(messageSource);
     }
 
     private Mono<Authentication> doAuthenticate(RememberMeAuthenticationToken token) {
-        return cookieSignatureKeyResolver.resolveSigningKey()
-            .flatMap(key -> {
-                if (key.hashCode() != token.getKeyHash()) {
-                    return Mono.error(new BadCredentialsException(badCredentialMessage()));
-                }
-                return Mono.just(token);
-            });
+        return cookieSignatureKeyResolver
+                .resolveSigningKey()
+                .filter(key -> key.hashCode() == token.getKeyHash())
+                .switchIfEmpty(Mono.error(() -> new BadCredentialsException(badCredentialMessage())))
+                .thenReturn(token);
     }
 
     private String badCredentialMessage() {
-        return this.messages.getMessage("RememberMeAuthenticationProvider.incorrectKey",
-            "The presented RememberMeAuthenticationToken does not contain the expected key");
+        return this.messages.getMessage(
+                "RememberMeAuthenticationProvider.incorrectKey",
+                "The presented RememberMeAuthenticationToken does not contain the expected key");
     }
 }

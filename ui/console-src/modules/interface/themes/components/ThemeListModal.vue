@@ -1,29 +1,21 @@
 <script lang="ts" setup>
-import { usePluginModuleStore } from "@/stores/plugin";
-import { usePermission } from "@/utils/permission";
 import type { Theme } from "@halo-dev/api-client";
-import { VButton, VModal, VTabbar } from "@halo-dev/components";
-import type { ThemeListTab } from "@halo-dev/console-shared";
-import { useRouteQuery } from "@vueuse/router";
+import { VButton, VLoading, VModal, VTabbar } from "@halo-dev/components";
+import { utils, type ThemeListTab } from "@halo-dev/ui-shared";
 import {
   computed,
+  defineAsyncComponent,
   inject,
-  markRaw,
-  nextTick,
   onMounted,
   provide,
   ref,
-  watch,
+  shallowRef,
   type Ref,
 } from "vue";
 import { useI18n } from "vue-i18n";
-import InstalledThemes from "./list-tabs/InstalledThemes.vue";
-import LocalUpload from "./list-tabs/LocalUpload.vue";
-import NotInstalledThemes from "./list-tabs/NotInstalledThemes.vue";
-import RemoteDownload from "./list-tabs/RemoteDownload.vue";
+import { usePluginModuleStore } from "@/stores/plugin";
 
 const { t } = useI18n();
-const { currentUserHasPermission } = usePermission();
 
 const selectedTheme = inject<Ref<Theme | undefined>>("selectedTheme", ref());
 
@@ -34,41 +26,57 @@ const emit = defineEmits<{
 
 const modal = ref<InstanceType<typeof VModal> | null>(null);
 
-const tabs = ref<ThemeListTab[]>([
+defineExpose({
+  close: () => modal.value?.close(),
+});
+
+const tabs = shallowRef<ThemeListTab[]>([
   {
     id: "installed",
     label: t("core.theme.list_modal.tabs.installed"),
-    component: markRaw(InstalledThemes),
+    component: defineAsyncComponent({
+      loader: () => import("./list-tabs/InstalledThemes.vue"),
+      loadingComponent: VLoading,
+    }),
     priority: 10,
   },
   {
     id: "local-upload",
     label: t("core.theme.list_modal.tabs.local_upload"),
-    component: markRaw(LocalUpload),
+    component: defineAsyncComponent({
+      loader: () => import("./list-tabs/LocalUpload.vue"),
+      loadingComponent: VLoading,
+    }),
     priority: 20,
   },
   {
     id: "remote-download",
     label: t("core.theme.list_modal.tabs.remote_download.label"),
-    component: markRaw(RemoteDownload),
+    component: defineAsyncComponent({
+      loader: () => import("./list-tabs/RemoteDownload.vue"),
+      loadingComponent: VLoading,
+    }),
     priority: 30,
   },
   {
     id: "not_installed",
     label: t("core.theme.list_modal.tabs.not_installed"),
-    component: markRaw(NotInstalledThemes),
+    component: defineAsyncComponent({
+      loader: () => import("./list-tabs/NotInstalledThemes.vue"),
+      loadingComponent: VLoading,
+    }),
     priority: 40,
   },
 ]);
 
-watch(
-  () => selectedTheme.value,
-  (value, oldValue) => {
-    if (value && oldValue) {
-      emit("select", value);
-      modal.value?.close();
-    }
-  }
+provide<Ref<Theme | undefined>>(
+  "selectedTheme",
+  computed({
+    get: () => selectedTheme.value,
+    set: (theme) => {
+      emit("select", theme);
+    },
+  })
 );
 
 const activeTabId = ref();
@@ -78,17 +86,6 @@ provide<Ref<string>>("activeTabId", activeTabId);
 const modalTitle = computed(() => {
   const tab = tabs.value.find((tab) => tab.id === activeTabId.value);
   return tab?.label;
-});
-
-// handle remote wordpress url from route
-const remoteDownloadUrl = useRouteQuery<string>("remote-download-url");
-
-onMounted(() => {
-  if (remoteDownloadUrl.value) {
-    nextTick(() => {
-      activeTabId.value = "remote-download";
-    });
-  }
 });
 
 const { pluginModules } = usePluginModuleStore();
@@ -109,7 +106,7 @@ onMounted(async () => {
 
       tabsFromPlugins.push(
         ...items.filter((item) => {
-          return currentUserHasPermission(item.permissions);
+          return utils.permission.has(item.permissions || []);
         })
       );
     } catch (error) {

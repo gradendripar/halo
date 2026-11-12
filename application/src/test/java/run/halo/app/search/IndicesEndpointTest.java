@@ -34,11 +34,9 @@ class IndicesEndpointTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/indices/-/rebuild", "/indices/post"})
+    @ValueSource(strings = {"/indices/-/rebuild"})
     void shouldRebuildIndices(String uri) {
-        client.post().uri(uri)
-            .exchange()
-            .expectStatus().isAccepted();
+        client.post().uri(uri).exchange().expectStatus().isAccepted();
         verify(publisher).publishEvent(assertArg(event -> {
             assertInstanceOf(HaloDocumentRebuildRequestEvent.class, event);
             assertEquals(endpoint, event.getSource());

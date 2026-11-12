@@ -1,11 +1,12 @@
 package run.halo.app.security.device;
 
 import java.time.Duration;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpCookie;
-import org.springframework.lang.Nullable;
 import org.springframework.web.server.ServerWebExchange;
 
 public interface DeviceCookieResolver {
+
     @Nullable
     HttpCookie resolveCookie(ServerWebExchange exchange);
 

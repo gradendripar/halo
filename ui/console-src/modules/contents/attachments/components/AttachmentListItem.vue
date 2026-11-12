@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import EntityDropdownItems from "@/components/entity/EntityDropdownItems.vue";
-import { formatDatetime } from "@/utils/date";
-import { usePermission } from "@/utils/permission";
 import { useOperationItemExtensionPoint } from "@console/composables/use-operation-extension-points";
 import type { Attachment } from "@halo-dev/api-client";
 import { coreApiClient } from "@halo-dev/api-client";
@@ -15,15 +12,15 @@ import {
   VSpace,
   VStatusDot,
 } from "@halo-dev/components";
-import type { OperationItem } from "@halo-dev/console-shared";
+import { utils, type OperationItem } from "@halo-dev/ui-shared";
 import { useQueryClient } from "@tanstack/vue-query";
 import prettyBytes from "pretty-bytes";
 import type { Ref } from "vue";
 import { computed, inject, markRaw, ref, toRefs } from "vue";
 import { useI18n } from "vue-i18n";
+import EntityDropdownItems from "@/components/entity/EntityDropdownItems.vue";
 import { useFetchAttachmentPolicy } from "../composables/use-attachment-policy";
 
-const { currentUserHasPermission } = usePermission();
 const { t } = useI18n();
 const queryClient = useQueryClient();
 
@@ -37,16 +34,16 @@ const props = withDefaults(
 
 const { attachment } = toRefs(props);
 
-const { policies } = useFetchAttachmentPolicy();
+const { data: policies } = useFetchAttachmentPolicy();
 
 const emit = defineEmits<{
   (event: "select", attachment?: Attachment): void;
   (event: "open-detail", attachment: Attachment): void;
 }>();
 
-const selectedAttachments = inject<Ref<Set<Attachment>>>(
-  "selectedAttachments",
-  ref<Set<Attachment>>(new Set())
+const selectedAttachmentNames = inject<Ref<Set<string>>>(
+  "selectedAttachmentNames",
+  ref<Set<string>>(new Set())
 );
 
 const policyDisplayName = computed(() => {
@@ -69,7 +66,7 @@ const handleDelete = () => {
           name: props.attachment.metadata.name,
         });
 
-        selectedAttachments.value.delete(props.attachment);
+        selectedAttachmentNames.value.delete(props.attachment.metadata.name);
 
         Toast.success(t("core.common.toast.delete_success"));
       } catch (e) {
@@ -81,7 +78,7 @@ const handleDelete = () => {
   });
 };
 
-const { operationItems } = useOperationItemExtensionPoint<Attachment>(
+const { data: operationItems } = useOperationItemExtensionPoint<Attachment>(
   "attachment:list-item:operation:create",
   attachment,
   computed((): OperationItem<Attachment>[] => [
@@ -136,11 +133,11 @@ const { operationItems } = useOperationItemExtensionPoint<Attachment>(
 <template>
   <VEntity :is-selected="isSelected">
     <template
-      v-if="currentUserHasPermission(['system:attachments:manage'])"
+      v-if="utils.permission.has(['system:attachments:manage'])"
       #checkbox
     >
       <input
-        :checked="selectedAttachments.has(attachment)"
+        :checked="selectedAttachmentNames.has(attachment.metadata.name)"
         type="checkbox"
         @click="emit('select', attachment)"
       />
@@ -187,7 +184,7 @@ const { operationItems } = useOperationItemExtensionPoint<Attachment>(
             }"
             class="text-xs text-gray-500"
             :class="{
-              'pointer-events-none': !currentUserHasPermission([
+              'pointer-events-none': !utils.permission.has([
                 'system:users:view',
               ]),
             }"
@@ -208,14 +205,14 @@ const { operationItems } = useOperationItemExtensionPoint<Attachment>(
       <VEntityField>
         <template #description>
           <span class="truncate text-xs tabular-nums text-gray-500">
-            {{ formatDatetime(attachment.metadata.creationTimestamp) }}
+            {{ utils.date.format(attachment.metadata.creationTimestamp) }}
           </span>
         </template>
       </VEntityField>
     </template>
     <template #dropdownItems>
       <EntityDropdownItems
-        :dropdown-items="operationItems"
+        :dropdown-items="operationItems || []"
         :item="attachment"
       />
     </template>

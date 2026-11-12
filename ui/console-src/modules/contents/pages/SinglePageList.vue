@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import UserFilterDropdown from "@/components/filter/UserFilterDropdown.vue";
-import { singlePageLabels } from "@/constants/labels";
 import type { ListedSinglePage, SinglePage } from "@halo-dev/api-client";
 import { consoleApiClient, coreApiClient } from "@halo-dev/api-client";
 import {
@@ -14,6 +12,9 @@ import {
   VButton,
   VCard,
   VEmpty,
+  VEntityContainer,
+  VFilterDropdown,
+  VFilterDropdownGroup,
   VLoading,
   VPageHeader,
   VPagination,
@@ -22,8 +23,10 @@ import {
 import { useQuery } from "@tanstack/vue-query";
 import { useRouteQuery } from "@vueuse/router";
 import type { Ref } from "vue";
-import { computed, provide, ref, watch } from "vue";
+import { provide, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import UserFilterDropdown from "@/components/filter/UserFilterDropdown.vue";
+import { singlePageLabels } from "@/constants/labels";
 import SinglePageListItem from "./components/SinglePageListItem.vue";
 import SinglePageSettingModal from "./components/SinglePageSettingModal.vue";
 
@@ -57,22 +60,6 @@ watch(
     page.value = 1;
   }
 );
-
-const hasFilters = computed(() => {
-  return (
-    selectedContributor.value ||
-    selectedVisible.value ||
-    selectedPublishStatus.value !== undefined ||
-    selectedSort.value
-  );
-});
-
-function handleClearFilters() {
-  selectedContributor.value = undefined;
-  selectedVisible.value = undefined;
-  selectedPublishStatus.value = undefined;
-  selectedSort.value = undefined;
-}
 
 const page = useRouteQuery<number>("page", 1, {
   transform: Number,
@@ -237,15 +224,15 @@ const handleDeleteInBatch = async () => {
             return Promise.resolve();
           }
 
-          return coreApiClient.content.singlePage.updateSinglePage({
+          return coreApiClient.content.singlePage.patchSinglePage({
             name: page.metadata.name,
-            singlePage: {
-              ...page,
-              spec: {
-                ...page.spec,
-                deleted: true,
+            jsonPatchInner: [
+              {
+                op: "add",
+                path: "/spec/deleted",
+                value: true,
               },
-            },
+            ],
           });
         })
       );
@@ -280,28 +267,26 @@ watch(selectedPageNames, (newValue) => {
 
   <VPageHeader :title="$t('core.page.title')">
     <template #icon>
-      <IconPages class="mr-2 self-center" />
+      <IconPages />
     </template>
     <template #actions>
-      <VSpace>
-        <VButton
-          v-permission="['system:singlepages:view']"
-          :route="{ name: 'DeletedSinglePages' }"
-          size="sm"
-        >
-          {{ $t("core.page.actions.recycle_bin") }}
-        </VButton>
-        <VButton
-          v-permission="['system:singlepages:manage']"
-          :route="{ name: 'SinglePageEditor' }"
-          type="secondary"
-        >
-          <template #icon>
-            <IconAddCircle class="h-full w-full" />
-          </template>
-          {{ $t("core.common.buttons.new") }}
-        </VButton>
-      </VSpace>
+      <VButton
+        v-permission="['system:singlepages:view']"
+        :route="{ name: 'DeletedSinglePages' }"
+        size="sm"
+      >
+        {{ $t("core.page.actions.recycle_bin") }}
+      </VButton>
+      <VButton
+        v-permission="['system:singlepages:manage']"
+        :route="{ name: 'SinglePageEditor' }"
+        type="secondary"
+      >
+        <template #icon>
+          <IconAddCircle />
+        </template>
+        {{ $t("core.common.buttons.new") }}
+      </VButton>
     </template>
   </VPageHeader>
 
@@ -331,88 +316,88 @@ watch(selectedPageNames, (newValue) => {
               </VSpace>
             </div>
             <VSpace spacing="lg" class="flex-wrap">
-              <FilterCleanButton
-                v-if="hasFilters"
-                @click="handleClearFilters"
-              />
-              <FilterDropdown
-                v-model="selectedPublishStatus"
-                :label="$t('core.common.filters.labels.status')"
-                :items="[
-                  {
-                    label: t('core.common.filters.item_labels.all'),
-                    value: undefined,
-                  },
-                  {
-                    label: t('core.page.filters.status.items.published'),
-                    value: 'true',
-                  },
-                  {
-                    label: t('core.page.filters.status.items.draft'),
-                    value: 'false',
-                  },
-                ]"
-              />
-              <FilterDropdown
-                v-model="selectedVisible"
-                :label="$t('core.page.filters.visible.label')"
-                :items="[
-                  {
-                    label: t('core.common.filters.item_labels.all'),
-                    value: undefined,
-                  },
-                  {
-                    label: t('core.page.filters.visible.items.public'),
-                    value: 'PUBLIC',
-                  },
-                  {
-                    label: t('core.page.filters.visible.items.private'),
-                    value: 'PRIVATE',
-                  },
-                ]"
-              />
-              <HasPermission :permissions="['system:users:view']">
-                <UserFilterDropdown
-                  v-model="selectedContributor"
-                  :label="$t('core.page.filters.author.label')"
+              <VFilterDropdownGroup
+                :clear-label="$t('core.common.buttons.reset')"
+                :has-external-filters="!!selectedContributor"
+                @clear="selectedContributor = undefined"
+              >
+                <VFilterDropdown
+                  v-model="selectedPublishStatus"
+                  :label="$t('core.common.filters.labels.status')"
+                  show-clear-option
+                  :clear-label="t('core.common.filters.item_labels.all')"
+                  :options="[
+                    {
+                      label: t('core.page.filters.status.items.published'),
+                      value: 'true',
+                    },
+                    {
+                      label: t('core.page.filters.status.items.draft'),
+                      value: 'false',
+                    },
+                  ]"
                 />
-              </HasPermission>
-              <FilterDropdown
-                v-model="selectedSort"
-                :label="$t('core.common.filters.labels.sort')"
-                :items="[
-                  {
-                    label: t('core.common.filters.item_labels.default'),
-                  },
-                  {
-                    label: t('core.page.filters.sort.items.publish_time_desc'),
-                    value: 'publishTime,desc',
-                  },
-                  {
-                    label: t('core.page.filters.sort.items.publish_time_asc'),
-                    value: 'publishTime,asc',
-                  },
-                  {
-                    label: t('core.page.filters.sort.items.create_time_desc'),
-                    value: 'creationTimestamp,desc',
-                  },
-                  {
-                    label: t('core.page.filters.sort.items.create_time_asc'),
-                    value: 'creationTimestamp,asc',
-                  },
-                ]"
-              />
+                <VFilterDropdown
+                  v-model="selectedVisible"
+                  :label="$t('core.page.filters.visible.label')"
+                  show-clear-option
+                  :clear-label="t('core.common.filters.item_labels.all')"
+                  :options="[
+                    {
+                      label: t('core.page.filters.visible.items.public'),
+                      value: 'PUBLIC',
+                    },
+                    {
+                      label: t('core.page.filters.visible.items.private'),
+                      value: 'PRIVATE',
+                    },
+                  ]"
+                />
+                <HasPermission :permissions="['system:users:view']">
+                  <UserFilterDropdown
+                    v-model="selectedContributor"
+                    :label="$t('core.page.filters.author.label')"
+                  />
+                </HasPermission>
+                <VFilterDropdown
+                  v-model="selectedSort"
+                  :label="$t('core.common.filters.labels.sort')"
+                  show-clear-option
+                  :clear-label="t('core.common.filters.item_labels.default')"
+                  :options="[
+                    {
+                      label: t(
+                        'core.page.filters.sort.items.publish_time_desc'
+                      ),
+                      value: 'publishTime,desc',
+                    },
+                    {
+                      label: t('core.page.filters.sort.items.publish_time_asc'),
+                      value: 'publishTime,asc',
+                    },
+                    {
+                      label: t('core.page.filters.sort.items.create_time_desc'),
+                      value: 'creationTimestamp,desc',
+                    },
+                    {
+                      label: t('core.page.filters.sort.items.create_time_asc'),
+                      value: 'creationTimestamp,asc',
+                    },
+                  ]"
+                />
+              </VFilterDropdownGroup>
               <div class="flex flex-row gap-2">
-                <div
+                <button
+                  v-tooltip="$t('core.common.buttons.refresh')"
+                  type="button"
                   class="group cursor-pointer rounded p-1 hover:bg-gray-200"
                   @click="refetch()"
                 >
                   <IconRefreshLine
-                    v-tooltip="$t('core.common.buttons.refresh')"
                     :class="{ 'animate-spin text-gray-900': isFetching }"
                     class="h-4 w-4 text-gray-600 group-hover:text-gray-900"
                   />
-                </div>
+                </button>
               </div>
             </VSpace>
           </div>
@@ -432,10 +417,10 @@ watch(selectedPageNames, (newValue) => {
               <VButton
                 v-permission="['system:singlepages:manage']"
                 :route="{ name: 'SinglePageEditor' }"
-                type="primary"
+                type="secondary"
               >
                 <template #icon>
-                  <IconAddCircle class="h-full w-full" />
+                  <IconAddCircle />
                 </template>
                 {{ $t("core.common.buttons.new") }}
               </VButton>
@@ -444,21 +429,15 @@ watch(selectedPageNames, (newValue) => {
         </VEmpty>
       </Transition>
       <Transition v-else appear name="fade">
-        <ul
-          class="box-border h-full w-full divide-y divide-gray-100"
-          role="list"
-        >
-          <li
+        <VEntityContainer>
+          <SinglePageListItem
             v-for="singlePage in singlePages"
             :key="singlePage.page.metadata.name"
-          >
-            <SinglePageListItem
-              :single-page="singlePage"
-              :is-selected="checkSelection(singlePage.page)"
-              @open-setting-modal="handleOpenSettingModal"
-            />
-          </li>
-        </ul>
+            :single-page="singlePage"
+            :is-selected="checkSelection(singlePage.page)"
+            @open-setting-modal="handleOpenSettingModal"
+          />
+        </VEntityContainer>
       </Transition>
 
       <template #footer>

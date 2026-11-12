@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from "axios";
+import QueryString from "qs";
 import {
   AnnotationSettingV1alpha1Api,
+  AnnotationSettingV1AlphaUcApi,
   AttachmentV1alpha1Api,
   AttachmentV1alpha1ConsoleApi,
   AttachmentV1alpha1UcApi,
@@ -8,6 +10,8 @@ import {
   AuthProviderV1alpha1ConsoleApi,
   BackupV1alpha1Api,
   CategoryV1alpha1Api,
+  CategoryV1alpha1ConsoleApi,
+  CategoryV1alpha1PublicApi,
   CommentV1alpha1Api,
   CommentV1alpha1ConsoleApi,
   CommentV1alpha1PublicApi,
@@ -17,15 +21,18 @@ import {
   ExtensionDefinitionV1alpha1Api,
   ExtensionPointDefinitionV1alpha1Api,
   GroupV1alpha1Api,
+  IndexV1alpha1PublicApi,
   IndicesV1alpha1ConsoleApi,
-  LoginApi,
   MenuItemV1alpha1Api,
+  MenuItemV1alpha1ConsoleApi,
   MenuV1alpha1Api,
+  MenuV1alpha1ConsoleApi,
   MenuV1alpha1PublicApi,
   MetricsV1alpha1PublicApi,
   MigrationV1alpha1ConsoleApi,
   NotificationTemplateV1alpha1Api,
   NotificationV1alpha1Api,
+  NotificationV1alpha1PublicApi,
   NotificationV1alpha1UcApi,
   NotifierDescriptorV1alpha1Api,
   NotifierV1alpha1ConsoleApi,
@@ -33,6 +40,7 @@ import {
   PersonalAccessTokenV1alpha1UcApi,
   PluginV1alpha1Api,
   PluginV1alpha1ConsoleApi,
+  PolicyAlpha1ConsoleApi,
   PolicyTemplateV1alpha1Api,
   PolicyV1alpha1Api,
   PostV1alpha1Api,
@@ -46,30 +54,37 @@ import {
   ReverseProxyV1alpha1Api,
   RoleBindingV1alpha1Api,
   RoleV1alpha1Api,
-  SearchEngineV1alpha1Api,
   SecretV1alpha1Api,
   SettingV1alpha1Api,
   SinglePageV1alpha1Api,
   SinglePageV1alpha1ConsoleApi,
+  SinglePageV1alpha1PublicApi,
   SnapshotV1alpha1Api,
   SnapshotV1alpha1UcApi,
   SubscriptionV1alpha1Api,
+  SystemConfigV1alpha1ConsoleApi,
   SystemV1alpha1ConsoleApi,
   SystemV1alpha1PublicApi,
   TagV1alpha1Api,
   TagV1alpha1ConsoleApi,
+  TagV1alpha1PublicApi,
   ThemeV1alpha1Api,
   ThemeV1alpha1ConsoleApi,
   TwoFactorAuthV1alpha1UcApi,
+  UiPluginV1alpha1ConsoleApi,
   UserConnectionV1alpha1Api,
+  UserPreferenceV1alpha1UcApi,
   UserV1alpha1Api,
   UserV1alpha1ConsoleApi,
-  UserV1alpha1PublicApi
+  UserV1alpha1UcApi,
 } from "../src";
 
 const defaultAxiosInstance = axios.create({
-  baseURL: "/",
+  baseURL: "",
   withCredentials: true,
+  paramsSerializer: (params) => {
+    return QueryString.stringify(params, { arrayFormat: "repeat" });
+  },
 });
 
 defaultAxiosInstance.defaults.headers.common["X-Requested-With"] =
@@ -178,11 +193,6 @@ function createCoreApiClient(axiosInstance: AxiosInstance) {
         baseURL,
         axiosInstance
       ),
-      searchEngine: new SearchEngineV1alpha1Api(
-        undefined,
-        baseURL,
-        axiosInstance
-      ),
     },
 
     // metrics.halo.run
@@ -269,6 +279,8 @@ function createConsoleApiClient(axiosInstance: AxiosInstance) {
   const baseURL = axiosInstance.defaults.baseURL;
 
   return {
+    menu: new MenuV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
+    menuItem: new MenuItemV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
     user: new UserV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
     system: new SystemV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
     migration: new MigrationV1alpha1ConsoleApi(
@@ -276,13 +288,14 @@ function createConsoleApiClient(axiosInstance: AxiosInstance) {
       baseURL,
       axiosInstance
     ),
-    login: new LoginApi(undefined, baseURL, axiosInstance),
+    uiPlugin: new UiPluginV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
     storage: {
       attachment: new AttachmentV1alpha1ConsoleApi(
         undefined,
         baseURL,
         axiosInstance
       ),
+      policy: new PolicyAlpha1ConsoleApi(undefined, baseURL, axiosInstance),
     },
     auth: {
       authProvider: new AuthProviderV1alpha1ConsoleApi(
@@ -292,6 +305,11 @@ function createConsoleApiClient(axiosInstance: AxiosInstance) {
       ),
     },
     content: {
+      category: new CategoryV1alpha1ConsoleApi(
+        undefined,
+        baseURL,
+        axiosInstance
+      ),
       comment: new CommentV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
       reply: new ReplyV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
       indices: new IndicesV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
@@ -315,6 +333,13 @@ function createConsoleApiClient(axiosInstance: AxiosInstance) {
     },
     theme: {
       theme: new ThemeV1alpha1ConsoleApi(undefined, baseURL, axiosInstance),
+    },
+    configMap: {
+      system: new SystemConfigV1alpha1ConsoleApi(
+        undefined,
+        baseURL,
+        axiosInstance
+      ),
     },
   };
 }
@@ -373,14 +398,25 @@ function createUcApiClient(axiosInstance: AxiosInstance) {
         baseURL,
         axiosInstance
       ),
-      device: new DeviceV1alpha1UcApi(
+      device: new DeviceV1alpha1UcApi(undefined, baseURL, axiosInstance),
+    },
+    notification: {
+      notification: new NotificationV1alpha1UcApi(
         undefined,
         baseURL,
         axiosInstance
       ),
     },
-    notification: {
-      notification: new NotificationV1alpha1UcApi(
+    user: {
+      preference: new UserPreferenceV1alpha1UcApi(
+        undefined,
+        baseURL,
+        axiosInstance
+      ),
+      currentUser: new UserV1alpha1UcApi(undefined, baseURL, axiosInstance),
+    },
+    core: {
+      annotationSetting: new AnnotationSettingV1AlphaUcApi(
         undefined,
         baseURL,
         axiosInstance
@@ -423,21 +459,45 @@ function createPublicApiClient(axiosInstance: AxiosInstance) {
   return {
     menu: new MenuV1alpha1PublicApi(undefined, baseURL, axiosInstance),
     stats: new SystemV1alpha1PublicApi(undefined, baseURL, axiosInstance),
-    user: new UserV1alpha1PublicApi(undefined, baseURL, axiosInstance),
     content: {
+      category: new CategoryV1alpha1PublicApi(
+        undefined,
+        baseURL,
+        axiosInstance
+      ),
+      tag: new TagV1alpha1PublicApi(undefined, baseURL, axiosInstance),
+      singlePage: new SinglePageV1alpha1PublicApi(
+        undefined,
+        baseURL,
+        axiosInstance
+      ),
       post: new PostV1alpha1PublicApi(undefined, baseURL, axiosInstance),
+      /**
+       * @deprecated Use comment instead
+       */
       comment: new CommentV1alpha1PublicApi(undefined, baseURL, axiosInstance),
     },
+    comment: new CommentV1alpha1PublicApi(undefined, baseURL, axiosInstance),
     metrics: {
       metrics: new MetricsV1alpha1PublicApi(undefined, baseURL, axiosInstance),
     },
+    notification: new NotificationV1alpha1PublicApi(
+      undefined,
+      baseURL,
+      axiosInstance
+    ),
+    index: new IndexV1alpha1PublicApi(undefined, baseURL, axiosInstance),
   };
 }
 
-const defaultCoreApiClient = createCoreApiClient(defaultAxiosInstance);
-const defaultConsoleApiClient = createConsoleApiClient(defaultAxiosInstance);
-const defaultUcApiClient = createUcApiClient(defaultAxiosInstance);
-const defaultPublicApiClient = createPublicApiClient(defaultAxiosInstance);
+const defaultCoreApiClient =
+  /*#__PURE__*/ createCoreApiClient(defaultAxiosInstance);
+const defaultConsoleApiClient =
+  /*#__PURE__*/ createConsoleApiClient(defaultAxiosInstance);
+const defaultUcApiClient =
+  /*#__PURE__*/ createUcApiClient(defaultAxiosInstance);
+const defaultPublicApiClient =
+  /*#__PURE__*/ createPublicApiClient(defaultAxiosInstance);
 
 export {
   defaultAxiosInstance as axiosInstance,
@@ -448,6 +508,5 @@ export {
   createPublicApiClient,
   createUcApiClient,
   defaultPublicApiClient as publicApiClient,
-  defaultUcApiClient as ucApiClient
+  defaultUcApiClient as ucApiClient,
 };
-

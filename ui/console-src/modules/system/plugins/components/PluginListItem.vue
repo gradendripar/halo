@@ -1,37 +1,34 @@
 <script lang="ts" setup>
-import { formatDatetime } from "@/utils/date";
-import { usePermission } from "@/utils/permission";
+import { useEntityFieldItemExtensionPoint } from "@console/composables/use-entity-extension-points";
+import { useOperationItemExtensionPoint } from "@console/composables/use-operation-extension-points";
+import PluginInstallationModal from "@console/modules/system/plugins/components/PluginInstallationModal.vue";
+import { PluginStatusPhaseEnum, type Plugin } from "@halo-dev/api-client";
 import {
-  PluginStatusPhaseEnum,
-  consoleApiClient,
-  type Plugin,
-} from "@halo-dev/api-client";
-import {
-  Dialog,
-  Toast,
   VDropdownDivider,
   VDropdownItem,
   VEntity,
   VEntityField,
 } from "@halo-dev/components";
+import {
+  utils,
+  type EntityFieldItem,
+  type OperationItem,
+} from "@halo-dev/ui-shared";
 import type { Ref } from "vue";
 import { computed, inject, markRaw, ref, toRefs } from "vue";
-import { usePluginLifeCycle } from "../composables/use-plugin";
-
+import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import EntityFieldItems from "@/components/entity-fields/EntityFieldItems.vue";
 import StatusDotField from "@/components/entity-fields/StatusDotField.vue";
 import EntityDropdownItems from "@/components/entity/EntityDropdownItems.vue";
-import { useEntityFieldItemExtensionPoint } from "@console/composables/use-entity-extension-points";
-import { useOperationItemExtensionPoint } from "@console/composables/use-operation-extension-points";
-import PluginInstallationModal from "@console/modules/system/plugins/components/PluginInstallationModal.vue";
-import type { EntityFieldItem, OperationItem } from "@halo-dev/console-shared";
-import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { pluginLabels } from "@/constants/labels";
+import { usePluginLifeCycle } from "../composables/use-plugin";
 import AuthorField from "./entity-fields/AuthorField.vue";
 import LogoField from "./entity-fields/LogoField.vue";
+import ReloadField from "./entity-fields/ReloadField.vue";
 import SwitchField from "./entity-fields/SwitchField.vue";
+import TitleField from "./entity-fields/TitleField.vue";
 
-const { currentUserHasPermission } = usePermission();
 const { t } = useI18n();
 const router = useRouter();
 
@@ -47,37 +44,17 @@ const { plugin } = toRefs(props);
 
 const selectedNames = inject<Ref<string[]>>("selectedNames", ref([]));
 
-const { getStatusDotState, getStatusMessage, uninstall } =
-  usePluginLifeCycle(plugin);
+const {
+  getStatusDotState,
+  getStatusMessage,
+  uninstall,
+  reload,
+  resetPluginConfig,
+} = usePluginLifeCycle(plugin);
 
 const pluginUpgradeModalVisible = ref(false);
 
-const handleResetSettingConfig = async () => {
-  Dialog.warning({
-    title: t("core.plugin.operations.reset.title"),
-    description: t("core.plugin.operations.reset.description"),
-    confirmType: "danger",
-    confirmText: t("core.common.buttons.confirm"),
-    cancelText: t("core.common.buttons.cancel"),
-    onConfirm: async () => {
-      try {
-        if (!plugin?.value) {
-          return;
-        }
-
-        await consoleApiClient.plugin.plugin.resetPluginConfig({
-          name: plugin.value.metadata.name as string,
-        });
-
-        Toast.success(t("core.plugin.operations.reset.toast_success"));
-      } catch (e) {
-        console.error("Failed to reset plugin setting config", e);
-      }
-    },
-  });
-};
-
-const { operationItems } = useOperationItemExtensionPoint<Plugin>(
+const { data: operationItems } = useOperationItemExtensionPoint<Plugin>(
   "plugin:list-item:operation:create",
   plugin,
   computed((): OperationItem<Plugin>[] => [
@@ -101,6 +78,9 @@ const { operationItems } = useOperationItemExtensionPoint<Plugin>(
       action: () => {
         pluginUpgradeModalVisible.value = true;
       },
+      // System reserved plugins cannot be upgraded
+      hidden:
+        plugin.value.metadata.labels?.[pluginLabels.SYSTEM_RESERVED] === "true",
     },
     {
       priority: 30,
@@ -121,7 +101,13 @@ const { operationItems } = useOperationItemExtensionPoint<Plugin>(
             type: "danger",
           },
           label: t("core.common.buttons.uninstall"),
-          action: () => uninstall(),
+          action: () =>
+            uninstall({
+              deleteExtensions: false,
+              onSuccess: () => {
+                window.location.reload();
+              },
+            }),
         },
         {
           priority: 20,
@@ -130,9 +116,18 @@ const { operationItems } = useOperationItemExtensionPoint<Plugin>(
             type: "danger",
           },
           label: t("core.plugin.operations.uninstall_and_delete_config.button"),
-          action: () => uninstall(true),
+          action: () =>
+            uninstall({
+              deleteExtensions: true,
+              onSuccess: () => {
+                window.location.reload();
+              },
+            }),
         },
       ],
+      // System reserved plugins cannot be uninstalled
+      hidden:
+        plugin.value.metadata.labels?.[pluginLabels.SYSTEM_RESERVED] === "true",
     },
     {
       priority: 50,
@@ -140,15 +135,23 @@ const { operationItems } = useOperationItemExtensionPoint<Plugin>(
       props: {
         type: "danger",
       },
-      label: t("core.common.buttons.reset"),
-      action: () => {
-        handleResetSettingConfig();
+      label: t("core.plugin.operations.reload.button"),
+      hidden: !plugin.value.spec.enabled,
+      action: reload,
+    },
+    {
+      priority: 60,
+      component: markRaw(VDropdownItem),
+      props: {
+        type: "danger",
       },
+      label: t("core.plugin.operations.reset.button"),
+      action: resetPluginConfig,
     },
   ])
 );
 
-const { startFields, endFields } = useEntityFieldItemExtensionPoint<Plugin>(
+const { data: fields } = useEntityFieldItemExtensionPoint<Plugin>(
   "plugin:list-item:field:create",
   plugin,
   computed((): EntityFieldItem[] => {
@@ -170,14 +173,9 @@ const { startFields, endFields } = useEntityFieldItemExtensionPoint<Plugin>(
       {
         position: "start",
         priority: 20,
-        component: markRaw(VEntityField),
+        component: markRaw(TitleField),
         props: {
-          title: props.plugin.spec.displayName,
-          description: props.plugin.spec.description,
-          route: {
-            name: "PluginDetail",
-            params: { name: props.plugin.metadata.name },
-          },
+          plugin: props.plugin,
         },
       },
       {
@@ -221,12 +219,11 @@ const { startFields, endFields } = useEntityFieldItemExtensionPoint<Plugin>(
       },
       {
         position: "end",
-        priority: 50,
-        component: markRaw(VEntityField),
+        priority: 41,
+        component: markRaw(ReloadField),
         props: {
-          description: formatDatetime(props.plugin.metadata.creationTimestamp),
+          plugin: props.plugin,
         },
-        hidden: !props.plugin.metadata.creationTimestamp,
       },
       {
         position: "end",
@@ -243,10 +240,7 @@ const { startFields, endFields } = useEntityFieldItemExtensionPoint<Plugin>(
 </script>
 <template>
   <VEntity :is-selected="isSelected">
-    <template
-      v-if="currentUserHasPermission(['system:plugins:manage'])"
-      #checkbox
-    >
+    <template v-if="utils.permission.has(['system:plugins:manage'])" #checkbox>
       <input
         v-model="selectedNames"
         :value="plugin.metadata.name"
@@ -255,23 +249,26 @@ const { startFields, endFields } = useEntityFieldItemExtensionPoint<Plugin>(
       />
     </template>
     <template #start>
-      <EntityFieldItems :fields="startFields" />
+      <EntityFieldItems :fields="fields?.start || []" />
     </template>
     <template #end>
-      <EntityFieldItems :fields="endFields" />
+      <EntityFieldItems :fields="fields?.end || []" />
     </template>
     <template
-      v-if="currentUserHasPermission(['system:plugins:manage'])"
+      v-if="utils.permission.has(['system:plugins:manage'])"
       #dropdownItems
     >
-      <EntityDropdownItems :dropdown-items="operationItems" :item="plugin" />
+      <EntityDropdownItems
+        :dropdown-items="operationItems || []"
+        :item="plugin"
+      />
     </template>
   </VEntity>
 
   <PluginInstallationModal
     v-if="
       pluginUpgradeModalVisible &&
-      currentUserHasPermission(['system:plugins:manage'])
+      utils.permission.has(['system:plugins:manage'])
     "
     :plugin-to-upgrade="plugin"
     @close="pluginUpgradeModalVisible = false"

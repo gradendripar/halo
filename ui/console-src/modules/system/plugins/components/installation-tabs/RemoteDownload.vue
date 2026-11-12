@@ -1,12 +1,10 @@
 <script lang="ts" setup>
-import { submitForm } from "@formkit/core";
 import type { Plugin } from "@halo-dev/api-client";
 import { consoleApiClient } from "@halo-dev/api-client";
-import { Dialog, Toast, VButton } from "@halo-dev/components";
+import { Dialog, Toast, VAlert, VButton } from "@halo-dev/components";
 import { useQueryClient } from "@tanstack/vue-query";
-import { useRouteQuery } from "@vueuse/router";
 import type { Ref } from "vue";
-import { inject, nextTick, onMounted, ref } from "vue";
+import { inject, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { PLUGIN_ALREADY_EXISTS_TYPE } from "../../constants";
 import type { PluginInstallationErrorResponse } from "../../types";
@@ -63,7 +61,6 @@ const handleDownloadPlugin = async () => {
 
     console.error("Failed to download plugin", error);
   } finally {
-    routeRemoteDownloadUrl.value = null;
     downloading.value = false;
   }
 };
@@ -119,23 +116,33 @@ const handleCatchExistsException = async (
     },
   });
 };
-
-// handle remote download url from route
-const routeRemoteDownloadUrl = useRouteQuery<string | null>(
-  "remote-download-url"
-);
-
-onMounted(() => {
-  if (routeRemoteDownloadUrl.value) {
-    remoteDownloadUrl.value = routeRemoteDownloadUrl.value;
-    nextTick(() => {
-      submitForm("plugin-remote-download-form");
-    });
-  }
-});
 </script>
 
 <template>
+  <div class="mb-4">
+    <VAlert
+      type="warning"
+      :title="$t('core.common.text.warning')"
+      :closable="false"
+    >
+      <template #description>
+        <i18n-t
+          keypath="core.plugin.upload_modal.security_alert.description"
+          tag="p"
+        >
+          <template #url>
+            <a
+              href="https://www.halo.run/store/apps"
+              target="_blank"
+              class="underline-offset-2 hover:text-gray-900 hover:underline"
+            >
+              {{ $t("core.common.text.official_app_store") }}
+            </a>
+          </template>
+        </i18n-t>
+      </template>
+    </VAlert>
+  </div>
   <FormKit
     id="plugin-remote-download-form"
     name="plugin-remote-download-form"

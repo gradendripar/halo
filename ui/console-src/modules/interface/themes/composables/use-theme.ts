@@ -1,16 +1,21 @@
-import { useThemeStore } from "@console/stores/theme";
+import {
+  useActivatedTheme,
+  invalidateThemeQueries,
+} from "@console/composables/use-activated-theme";
 import type { Theme } from "@halo-dev/api-client";
 import { consoleApiClient } from "@halo-dev/api-client";
 import { Dialog, Toast } from "@halo-dev/components";
+import { useQueryClient } from "@tanstack/vue-query";
 import { useFileDialog } from "@vueuse/core";
-import { storeToRefs } from "pinia";
+import { merge } from "es-toolkit";
 import type { ComputedRef, Ref } from "vue";
-import { computed, ref } from "vue";
+import { computed, ref, toValue, type MaybeRefOrGetter } from "vue";
 import { useI18n } from "vue-i18n";
 
 interface useThemeLifeCycleReturn {
   loading: Ref<boolean>;
   isActivated: ComputedRef<boolean>;
+  isActivationKnown: ComputedRef<boolean>;
   getFailedMessage: () => string | undefined;
   handleActiveTheme: (reload?: boolean) => void;
   handleResetSettingConfig: () => void;
@@ -23,9 +28,10 @@ export function useThemeLifeCycle(
 
   const loading = ref(false);
 
-  const themeStore = useThemeStore();
+  const queryClient = useQueryClient();
+  const { data: activatedTheme } = useActivatedTheme();
 
-  const { activatedTheme } = storeToRefs(themeStore);
+  const isActivationKnown = computed(() => activatedTheme.value !== undefined);
 
   const isActivated = computed(() => {
     return activatedTheme?.value?.metadata.name === theme.value?.metadata.name;
@@ -53,19 +59,23 @@ export function useThemeLifeCycle(
         try {
           if (!theme.value) return;
 
+          const name = theme.value.metadata.name;
           await consoleApiClient.theme.theme.activateTheme({
-            name: theme.value?.metadata.name,
+            name,
           });
 
           Toast.success(t("core.theme.operations.active.toast_success"));
 
           if (reload) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("theme", name);
+            window.history.replaceState(window.history.state, "", url);
             window.location.reload();
           }
         } catch (e) {
           console.error("Failed to active theme", e);
         } finally {
-          themeStore.fetchActivatedTheme();
+          void invalidateThemeQueries(queryClient);
         }
       },
     });
@@ -99,14 +109,23 @@ export function useThemeLifeCycle(
   return {
     loading,
     isActivated,
+    isActivationKnown,
     getFailedMessage,
     handleActiveTheme,
     handleResetSettingConfig,
   };
 }
 
-export function useThemeCustomTemplates(type: "post" | "page" | "category") {
-  const themeStore = useThemeStore();
+export function useThemeCustomTemplates(
+  type: "post" | "page" | "category",
+  currentTemplate: MaybeRefOrGetter<string | undefined> = undefined
+) {
+  const {
+    data: activatedTheme,
+    isInitialLoading,
+    isError,
+    refetch,
+  } = useActivatedTheme();
   const { t } = useI18n();
 
   const templates = computed(() => {
@@ -117,25 +136,27 @@ export function useThemeCustomTemplates(type: "post" | "page" | "category") {
       },
     ];
 
-    if (!themeStore.activatedTheme) {
-      return defaultTemplate;
-    }
-    const { customTemplates } = themeStore.activatedTheme.spec;
-    if (!customTemplates?.[type]) {
-      return defaultTemplate;
-    }
-    return [
+    const customTemplates = activatedTheme.value?.spec.customTemplates;
+    const options = [
       ...defaultTemplate,
-      ...(customTemplates[type]?.map((template) => {
+      ...(customTemplates?.[type]?.map((template) => {
         return {
           value: template.file,
           label: template.name || template.file,
+          description: template.description || "",
         };
       }) || []),
     ];
+    const current = toValue(currentTemplate);
+    if (current && !options.some((option) => option.value === current))
+      options.push({ value: current, label: current });
+    return options;
   });
 
   return {
+    isInitialLoading,
+    isError,
+    refetch,
     templates,
   };
 }
@@ -145,7 +166,7 @@ interface ExportData {
   version: string;
   settingName: string;
   configMapName: string;
-  configs: { [key: string]: string };
+  configs: Record<string, unknown>;
 }
 
 export function useThemeConfigFile(theme: Ref<Theme | undefined>) {
@@ -157,22 +178,25 @@ export function useThemeConfigFile(theme: Ref<Theme | undefined>) {
       return;
     }
 
-    const { data } = await consoleApiClient.theme.theme.fetchThemeConfig({
+    const { data } = await consoleApiClient.theme.theme.fetchThemeJsonConfig({
       name: theme?.value?.metadata.name as string,
     });
+
     if (!data) {
       console.error("Failed to fetch theme config");
       return;
     }
 
     const themeName = theme.value.metadata.name;
-    const exportData = {
+
+    const exportData: ExportData = {
       themeName: themeName,
-      version: theme.value.spec.version,
-      settingName: theme.value.spec.settingName,
-      configMapName: theme.value.spec.configMapName,
-      configs: data.data,
-    } as ExportData;
+      version: theme.value.spec.version || "",
+      settingName: theme.value.spec.settingName || "",
+      configMapName: theme.value.spec.configMapName || "",
+      configs: data as Record<string, unknown>,
+    };
+
     const exportStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([exportStr], { type: "application/json" });
     const temporaryExportUrl = URL.createObjectURL(blob);
@@ -203,7 +227,7 @@ export function useThemeConfigFile(theme: Ref<Theme | undefined>) {
       return;
     }
     const configText = await files[0].text();
-    const configJson = JSON.parse(configText || "{}");
+    const configJson = JSON.parse(configText || "{}") as ExportData;
     if (!configJson.configs) {
       return;
     }
@@ -246,55 +270,25 @@ export function useThemeConfigFile(theme: Ref<Theme | undefined>) {
     handleSaveConfigMap(configJson.configs);
   });
 
-  const handleSaveConfigMap = async (importData: Record<string, string>) => {
+  const handleSaveConfigMap = async (importData: Record<string, unknown>) => {
     if (!theme.value) {
       return;
     }
-    const { data } = await consoleApiClient.theme.theme.fetchThemeConfig({
-      name: theme.value.metadata.name as string,
-    });
-    if (!data || !data.data) {
+    const { data: originalData } =
+      await consoleApiClient.theme.theme.fetchThemeJsonConfig({
+        name: theme.value.metadata.name as string,
+      });
+
+    if (!originalData) {
       return;
     }
-    const combinedConfigData = combinedConfigMap(data.data, importData);
-    await consoleApiClient.theme.theme.updateThemeConfig({
+
+    await consoleApiClient.theme.theme.updateThemeJsonConfig({
       name: theme.value.metadata.name,
-      configMap: {
-        ...data,
-        data: combinedConfigData,
-      },
+      body: merge(originalData, importData),
     });
+
     Toast.success(t("core.common.toast.save_success"));
-  };
-
-  /**
-   * combined benchmark configuration and import configuration
-   *
-   * benchmark: { a: "{\"a\": 1}", b: "{\"b\": 2}" }
-   * expand: { a: "{\"c\": 3}", b: "{\"d\": 4}" }
-   * => { a: "{\"a\": 1, \"c\": 3}", b: "{\"b\": 2, \"d\": 4}" }
-   *
-   * benchmark: { a: "{\"a\": 1}", b: "{\"b\": 2}", d: "{\"d\": 4}"
-   * expand: { a: "{\"a\": 2}", b: "{\"b\": 3, \"d\": 4}", c: "{\"c\": 5}" }
-   * => { a: "{\"a\": 2}", b: "{\"b\": 3, \"d\": 4}", d: "{\"d\": 4}" }
-   *
-   */
-  const combinedConfigMap = (
-    benchmarkConfigMap: { [key: string]: string },
-    importConfigMap: { [key: string]: string }
-  ): { [key: string]: string } => {
-    const result = benchmarkConfigMap;
-
-    for (const key in result) {
-      const benchmarkValueJson = JSON.parse(benchmarkConfigMap[key] || "{}");
-      const expandValueJson = JSON.parse(importConfigMap[key] || "{}");
-      const combinedValue = {
-        ...benchmarkValueJson,
-        ...expandValueJson,
-      };
-      result[key] = JSON.stringify(combinedValue);
-    }
-    return result;
   };
 
   return {

@@ -1,52 +1,49 @@
-import type { Category } from "@halo-dev/api-client";
-import { coreApiClient } from "@halo-dev/api-client";
+import {
+  consoleApiClient,
+  type Category,
+  type CategoryTreeNode,
+} from "@halo-dev/api-client";
 import { useQuery } from "@tanstack/vue-query";
-import type { Ref } from "vue";
+import { cloneDeep } from "es-toolkit";
 import { ref } from "vue";
-import type { CategoryTree } from "../utils";
-import { buildCategoriesTree } from "../utils";
+import { flattenCategoryTreeNodes } from "../utils";
 
-interface usePostCategoryReturn {
-  categories: Ref<Category[] | undefined>;
-  categoriesTree: Ref<CategoryTree[]>;
-  isLoading: Ref<boolean>;
-  handleFetchCategories: () => void;
-}
+export function usePostCategory() {
+  const categoriesTree = ref<CategoryTreeNode[]>([]);
+  const previousCategoriesTree = ref<CategoryTreeNode[]>([]);
+  const categories = ref<Category[]>([]);
 
-export function usePostCategory(): usePostCategoryReturn {
-  const categoriesTree = ref<CategoryTree[]>([] as CategoryTree[]);
+  function setCategoriesTree(tree: CategoryTreeNode[]) {
+    categoriesTree.value = tree;
+    previousCategoriesTree.value = cloneDeep(tree);
+    categories.value = flattenCategoryTreeNodes(tree);
+  }
 
-  const {
-    data: categories,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { isLoading, refetch } = useQuery({
     queryKey: ["post-categories"],
     queryFn: async () => {
-      const { data } = await coreApiClient.content.category.listCategory({
-        page: 0,
-        size: 0,
-        sort: ["metadata.creationTimestamp,desc"],
-      });
-
-      return data.items;
+      const { data } =
+        await consoleApiClient.content.category.listCategoryTree();
+      return data;
     },
     refetchInterval(data) {
-      const hasAbnormalCategory = data?.some(
+      const hasAbnormalCategory = flattenCategoryTreeNodes(data || []).some(
         (category) =>
           !!category.metadata.deletionTimestamp || !category.status?.permalink
       );
       return hasAbnormalCategory ? 1000 : false;
     },
     onSuccess(data) {
-      categoriesTree.value = buildCategoriesTree(data);
+      setCategoriesTree(data);
     },
   });
 
   return {
     categories,
     categoriesTree,
+    previousCategoriesTree,
     isLoading,
     handleFetchCategories: refetch,
+    setCategoriesTree,
   };
 }

@@ -2,11 +2,12 @@ package run.halo.app.search.post;
 
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import run.halo.app.content.ContentWrapper;
 import run.halo.app.content.PostService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ListOptions;
-import run.halo.app.extension.index.query.QueryFactory;
+import run.halo.app.extension.index.query.Queries;
 import run.halo.app.extension.router.selector.FieldSelector;
 import run.halo.app.infra.ReactiveExtensionPaginatedOperator;
 import run.halo.app.search.HaloDocument;
@@ -21,8 +22,7 @@ public class PostHaloDocumentsProvider implements HaloDocumentsProvider {
 
     private final PostService postService;
 
-    public PostHaloDocumentsProvider(ReactiveExtensionPaginatedOperator paginatedOperator,
-        PostService postService) {
+    public PostHaloDocumentsProvider(ReactiveExtensionPaginatedOperator paginatedOperator, PostService postService) {
         this.paginatedOperator = paginatedOperator;
         this.postService = postService;
     }
@@ -31,13 +31,19 @@ public class PostHaloDocumentsProvider implements HaloDocumentsProvider {
     public Flux<HaloDocument> fetchAll() {
         // make sure the posts are published, public visible and not deleted.
         var options = new ListOptions();
-        var noteDeleted = QueryFactory.isNull("metadata.deletionTimestamp");
+        var noteDeleted = Queries.isNull("metadata.deletionTimestamp");
         options.setFieldSelector(FieldSelector.of(noteDeleted));
         // get content
-        return paginatedOperator.list(Post.class, options)
-            .flatMap(post -> postService.getReleaseContent(post)
-                .map(contentWrapper -> convert(post, contentWrapper))
-            );
+        return paginatedOperator
+                .list(Post.class, options)
+                .flatMap(post -> postService
+                        .getReleaseContent(post)
+                        .switchIfEmpty(Mono.fromSupplier(() -> ContentWrapper.builder()
+                                .content("")
+                                .raw("")
+                                .rawType("")
+                                .build()))
+                        .map(contentWrapper -> convert(post, contentWrapper)));
     }
 
     @Override

@@ -1,10 +1,8 @@
 <script lang="ts" setup>
-// core libs
+import useSlugify from "@console/composables/use-slugify";
+import { reset, submitForm, type FormKitNode } from "@formkit/core";
+import type { Tag } from "@halo-dev/api-client";
 import { coreApiClient } from "@halo-dev/api-client";
-import { computed, nextTick, ref, watch } from "vue";
-
-// components
-import SubmitButton from "@/components/button/SubmitButton.vue";
 import {
   IconArrowLeft,
   IconArrowRight,
@@ -14,18 +12,13 @@ import {
   VModal,
   VSpace,
 } from "@halo-dev/components";
-
-// types
-import type { Tag } from "@halo-dev/api-client";
-
-// libs
-import AnnotationsForm from "@/components/form/AnnotationsForm.vue";
-import { setFocus } from "@/formkit/utils/focus";
-import { FormType } from "@/types/slug";
-import useSlugify from "@console/composables/use-slugify";
-import { cloneDeep } from "lodash-es";
-import { onMounted } from "vue";
+import { FormType } from "@halo-dev/ui-shared";
+import { cloneDeep } from "es-toolkit";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import SubmitButton from "@/components/button/SubmitButton.vue";
+import type AnnotationsForm from "@/components/form/AnnotationsForm.vue";
+import { setFocus } from "@/formkit/utils/focus";
 
 const props = withDefaults(
   defineProps<{
@@ -48,7 +41,7 @@ const formState = ref<Tag>({
   spec: {
     displayName: "",
     slug: "",
-    color: "#ffffff",
+    description: "",
     cover: "",
   },
   apiVersion: "content.halo.run/v1alpha1",
@@ -62,6 +55,8 @@ const formState = ref<Tag>({
 const modal = ref<InstanceType<typeof VModal> | null>(null);
 
 const saving = ref(false);
+
+const keepAddingSubmit = ref(false);
 
 const isUpdateMode = computed(() => !!props.tag);
 
@@ -101,7 +96,11 @@ const handleSaveTag = async () => {
       });
     }
 
-    modal.value?.close();
+    if (keepAddingSubmit.value) {
+      reset("tag-form");
+    } else {
+      modal.value?.close();
+    }
 
     Toast.success(t("core.common.toast.save_success"));
   } catch (e) {
@@ -109,6 +108,11 @@ const handleSaveTag = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+const handleSubmit = (keepAdding = false) => {
+  keepAddingSubmit.value = keepAdding;
+  submitForm("tag-form");
 };
 
 onMounted(() => {
@@ -141,6 +145,29 @@ const { handleGenerateSlug } = useSlugify(
   computed(() => !isUpdateMode.value),
   FormType.TAG
 );
+
+// fixme: check if slug is unique
+// Finally, we need to check if the slug is unique in the database
+async function slugUniqueValidation(node: FormKitNode) {
+  const value = node.value;
+  if (!value) {
+    return true;
+  }
+
+  const fieldSelector = [`spec.slug=${value}`];
+
+  if (props.tag) {
+    fieldSelector.push(`metadata.name!=${props.tag.metadata.name}`);
+  }
+
+  const { data: tagsWithSameSlug } = await coreApiClient.content.tag.listTag({
+    fieldSelector,
+    page: 1,
+    size: 1,
+  });
+
+  return !tagsWithSameSlug.total;
+}
 </script>
 <template>
   <VModal ref="modal" :title="modalTitle" :width="700" @close="emit('close')">
@@ -186,7 +213,13 @@ const { handleGenerateSlug } = useSlugify(
               :label="$t('core.post_tag.editing_modal.fields.slug.label')"
               name="slug"
               type="text"
-              validation="required|length:0,50"
+              validation="required|length:0,50|slugUniqueValidation"
+              :validation-rules="{ slugUniqueValidation }"
+              :validation-messages="{
+                slugUniqueValidation: $t(
+                  'core.common.form.validation.slug_unique'
+                ),
+              }"
             >
               <template #suffix>
                 <div
@@ -196,7 +229,7 @@ const { handleGenerateSlug } = useSlugify(
                     )
                   "
                   class="group flex h-full cursor-pointer items-center border-l px-3 transition-all hover:bg-gray-100"
-                  @click="handleGenerateSlug(true, FormType.TAG)"
+                  @click="handleGenerateSlug(true)"
                 >
                   <IconRefreshLine
                     class="h-4 w-4 text-gray-500 group-hover:text-gray-700"
@@ -221,6 +254,18 @@ const { handleGenerateSlug } = useSlugify(
               :accepts="['image/*']"
               validation="length:0,1024"
             ></FormKit>
+            <FormKit
+              v-model="formState.spec.description"
+              name="description"
+              :help="$t('core.post_tag.editing_modal.fields.description.help')"
+              :label="
+                $t('core.post_tag.editing_modal.fields.description.label')
+              "
+              type="textarea"
+              auto-height
+              :max-auto-height="200"
+              validation="length:0,200"
+            ></FormKit>
           </div>
         </div>
       </div>
@@ -243,6 +288,7 @@ const { handleGenerateSlug } = useSlugify(
           :key="formState.metadata.name"
           ref="annotationsFormRef"
           :value="formState.metadata.annotations"
+          :form-data="formState"
           kind="Tag"
           group="content.halo.run"
         />
@@ -250,18 +296,29 @@ const { handleGenerateSlug } = useSlugify(
     </div>
 
     <template #footer>
-      <VSpace>
-        <SubmitButton
-          :loading="saving"
-          type="secondary"
-          :text="$t('core.common.buttons.submit')"
-          @submit="$formkit.submit('tag-form')"
-        >
-        </SubmitButton>
+      <div class="flex justify-between">
+        <VSpace>
+          <SubmitButton
+            :loading="saving && !keepAddingSubmit"
+            :disabled="saving && keepAddingSubmit"
+            type="secondary"
+            :text="$t('core.common.buttons.submit')"
+            @submit="handleSubmit"
+          >
+          </SubmitButton>
+          <VButton
+            v-if="!isUpdateMode"
+            :loading="saving && keepAddingSubmit"
+            :disabled="saving && !keepAddingSubmit"
+            @click="handleSubmit(true)"
+          >
+            {{ $t("core.common.buttons.save_and_continue") }}
+          </VButton>
+        </VSpace>
         <VButton @click="modal?.close()">
           {{ $t("core.common.buttons.cancel_and_shortcut") }}
         </VButton>
-      </VSpace>
+      </div>
     </template>
   </VModal>
 </template>

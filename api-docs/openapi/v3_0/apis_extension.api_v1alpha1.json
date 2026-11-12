@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Halo",
-    "version": "2.17.0-SNAPSHOT"
+    "version": "2.28.0-SNAPSHOT"
   },
   "servers": [
     {
@@ -4757,6 +4757,1428 @@
         ]
       }
     },
+    "/apis/notification.halo.run/v1alpha1/notifications": {
+      "get": {
+        "description": "List Notification",
+        "operationId": "listNotification",
+        "parameters": [
+          {
+            "description": "Page number. Default is 0.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Size number. Default is 0.",
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Label selector. e.g.: hidden!\u003dtrue",
+            "in": "query",
+            "name": "labelSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Field selector. e.g.: metadata.name\u003d\u003dhalo",
+            "in": "query",
+            "name": "fieldSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            },
+            "description": "Response notifications"
+          }
+        },
+        "tags": [
+          "NotificationV1alpha1"
+        ]
+      },
+      "post": {
+        "description": "Create Notification",
+        "operationId": "createNotification",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/Notification"
+              }
+            }
+          },
+          "description": "Fresh notification"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            },
+            "description": "Response notifications created just now"
+          }
+        },
+        "tags": [
+          "NotificationV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/notifications/{name}": {
+      "delete": {
+        "description": "Delete Notification",
+        "operationId": "deleteNotification",
+        "parameters": [
+          {
+            "description": "Name of notification",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response notification deleted just now"
+          }
+        },
+        "tags": [
+          "NotificationV1alpha1"
+        ]
+      },
+      "get": {
+        "description": "Get Notification",
+        "operationId": "getNotification",
+        "parameters": [
+          {
+            "description": "Name of notification",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            },
+            "description": "Response single notification"
+          }
+        },
+        "tags": [
+          "NotificationV1alpha1"
+        ]
+      },
+      "patch": {
+        "description": "Patch Notification",
+        "operationId": "patchNotification",
+        "parameters": [
+          {
+            "description": "Name of notification",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            },
+            "description": "Response notification patched just now"
+          }
+        },
+        "tags": [
+          "NotificationV1alpha1"
+        ]
+      },
+      "put": {
+        "description": "Update Notification",
+        "operationId": "updateNotification",
+        "parameters": [
+          {
+            "description": "Name of notification",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/Notification"
+              }
+            }
+          },
+          "description": "Updated notification"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            },
+            "description": "Response notifications updated just now"
+          }
+        },
+        "tags": [
+          "NotificationV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/notificationtemplates": {
+      "get": {
+        "description": "List NotificationTemplate",
+        "operationId": "listNotificationTemplate",
+        "parameters": [
+          {
+            "description": "Page number. Default is 0.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Size number. Default is 0.",
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Label selector. e.g.: hidden!\u003dtrue",
+            "in": "query",
+            "name": "labelSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Field selector. e.g.: metadata.name\u003d\u003dhalo",
+            "in": "query",
+            "name": "fieldSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationTemplateList"
+                }
+              }
+            },
+            "description": "Response notificationtemplates"
+          }
+        },
+        "tags": [
+          "NotificationTemplateV1alpha1"
+        ]
+      },
+      "post": {
+        "description": "Create NotificationTemplate",
+        "operationId": "createNotificationTemplate",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationTemplate"
+              }
+            }
+          },
+          "description": "Fresh notificationtemplate"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationTemplate"
+                }
+              }
+            },
+            "description": "Response notificationtemplates created just now"
+          }
+        },
+        "tags": [
+          "NotificationTemplateV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/notificationtemplates/{name}": {
+      "delete": {
+        "description": "Delete NotificationTemplate",
+        "operationId": "deleteNotificationTemplate",
+        "parameters": [
+          {
+            "description": "Name of notificationtemplate",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response notificationtemplate deleted just now"
+          }
+        },
+        "tags": [
+          "NotificationTemplateV1alpha1"
+        ]
+      },
+      "get": {
+        "description": "Get NotificationTemplate",
+        "operationId": "getNotificationTemplate",
+        "parameters": [
+          {
+            "description": "Name of notificationtemplate",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationTemplate"
+                }
+              }
+            },
+            "description": "Response single notificationtemplate"
+          }
+        },
+        "tags": [
+          "NotificationTemplateV1alpha1"
+        ]
+      },
+      "patch": {
+        "description": "Patch NotificationTemplate",
+        "operationId": "patchNotificationTemplate",
+        "parameters": [
+          {
+            "description": "Name of notificationtemplate",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationTemplate"
+                }
+              }
+            },
+            "description": "Response notificationtemplate patched just now"
+          }
+        },
+        "tags": [
+          "NotificationTemplateV1alpha1"
+        ]
+      },
+      "put": {
+        "description": "Update NotificationTemplate",
+        "operationId": "updateNotificationTemplate",
+        "parameters": [
+          {
+            "description": "Name of notificationtemplate",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationTemplate"
+              }
+            }
+          },
+          "description": "Updated notificationtemplate"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationTemplate"
+                }
+              }
+            },
+            "description": "Response notificationtemplates updated just now"
+          }
+        },
+        "tags": [
+          "NotificationTemplateV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/notifierDescriptors": {
+      "get": {
+        "description": "List NotifierDescriptor",
+        "operationId": "listNotifierDescriptor",
+        "parameters": [
+          {
+            "description": "Page number. Default is 0.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Size number. Default is 0.",
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Label selector. e.g.: hidden!\u003dtrue",
+            "in": "query",
+            "name": "labelSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Field selector. e.g.: metadata.name\u003d\u003dhalo",
+            "in": "query",
+            "name": "fieldSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifierDescriptorList"
+                }
+              }
+            },
+            "description": "Response notifierDescriptors"
+          }
+        },
+        "tags": [
+          "NotifierDescriptorV1alpha1"
+        ]
+      },
+      "post": {
+        "description": "Create NotifierDescriptor",
+        "operationId": "createNotifierDescriptor",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifierDescriptor"
+              }
+            }
+          },
+          "description": "Fresh notifierDescriptor"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifierDescriptor"
+                }
+              }
+            },
+            "description": "Response notifierDescriptors created just now"
+          }
+        },
+        "tags": [
+          "NotifierDescriptorV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/notifierDescriptors/{name}": {
+      "delete": {
+        "description": "Delete NotifierDescriptor",
+        "operationId": "deleteNotifierDescriptor",
+        "parameters": [
+          {
+            "description": "Name of notifierDescriptor",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response notifierDescriptor deleted just now"
+          }
+        },
+        "tags": [
+          "NotifierDescriptorV1alpha1"
+        ]
+      },
+      "get": {
+        "description": "Get NotifierDescriptor",
+        "operationId": "getNotifierDescriptor",
+        "parameters": [
+          {
+            "description": "Name of notifierDescriptor",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifierDescriptor"
+                }
+              }
+            },
+            "description": "Response single notifierDescriptor"
+          }
+        },
+        "tags": [
+          "NotifierDescriptorV1alpha1"
+        ]
+      },
+      "patch": {
+        "description": "Patch NotifierDescriptor",
+        "operationId": "patchNotifierDescriptor",
+        "parameters": [
+          {
+            "description": "Name of notifierDescriptor",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifierDescriptor"
+                }
+              }
+            },
+            "description": "Response notifierDescriptor patched just now"
+          }
+        },
+        "tags": [
+          "NotifierDescriptorV1alpha1"
+        ]
+      },
+      "put": {
+        "description": "Update NotifierDescriptor",
+        "operationId": "updateNotifierDescriptor",
+        "parameters": [
+          {
+            "description": "Name of notifierDescriptor",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifierDescriptor"
+              }
+            }
+          },
+          "description": "Updated notifierDescriptor"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifierDescriptor"
+                }
+              }
+            },
+            "description": "Response notifierDescriptors updated just now"
+          }
+        },
+        "tags": [
+          "NotifierDescriptorV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/reasons": {
+      "get": {
+        "description": "List Reason",
+        "operationId": "listReason",
+        "parameters": [
+          {
+            "description": "Page number. Default is 0.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Size number. Default is 0.",
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Label selector. e.g.: hidden!\u003dtrue",
+            "in": "query",
+            "name": "labelSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Field selector. e.g.: metadata.name\u003d\u003dhalo",
+            "in": "query",
+            "name": "fieldSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReasonList"
+                }
+              }
+            },
+            "description": "Response reasons"
+          }
+        },
+        "tags": [
+          "ReasonV1alpha1"
+        ]
+      },
+      "post": {
+        "description": "Create Reason",
+        "operationId": "createReason",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/Reason"
+              }
+            }
+          },
+          "description": "Fresh reason"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reason"
+                }
+              }
+            },
+            "description": "Response reasons created just now"
+          }
+        },
+        "tags": [
+          "ReasonV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/reasons/{name}": {
+      "delete": {
+        "description": "Delete Reason",
+        "operationId": "deleteReason",
+        "parameters": [
+          {
+            "description": "Name of reason",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response reason deleted just now"
+          }
+        },
+        "tags": [
+          "ReasonV1alpha1"
+        ]
+      },
+      "get": {
+        "description": "Get Reason",
+        "operationId": "getReason",
+        "parameters": [
+          {
+            "description": "Name of reason",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reason"
+                }
+              }
+            },
+            "description": "Response single reason"
+          }
+        },
+        "tags": [
+          "ReasonV1alpha1"
+        ]
+      },
+      "patch": {
+        "description": "Patch Reason",
+        "operationId": "patchReason",
+        "parameters": [
+          {
+            "description": "Name of reason",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reason"
+                }
+              }
+            },
+            "description": "Response reason patched just now"
+          }
+        },
+        "tags": [
+          "ReasonV1alpha1"
+        ]
+      },
+      "put": {
+        "description": "Update Reason",
+        "operationId": "updateReason",
+        "parameters": [
+          {
+            "description": "Name of reason",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/Reason"
+              }
+            }
+          },
+          "description": "Updated reason"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reason"
+                }
+              }
+            },
+            "description": "Response reasons updated just now"
+          }
+        },
+        "tags": [
+          "ReasonV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/reasontypes": {
+      "get": {
+        "description": "List ReasonType",
+        "operationId": "listReasonType",
+        "parameters": [
+          {
+            "description": "Page number. Default is 0.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Size number. Default is 0.",
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Label selector. e.g.: hidden!\u003dtrue",
+            "in": "query",
+            "name": "labelSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Field selector. e.g.: metadata.name\u003d\u003dhalo",
+            "in": "query",
+            "name": "fieldSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReasonTypeList"
+                }
+              }
+            },
+            "description": "Response reasontypes"
+          }
+        },
+        "tags": [
+          "ReasonTypeV1alpha1"
+        ]
+      },
+      "post": {
+        "description": "Create ReasonType",
+        "operationId": "createReasonType",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonType"
+              }
+            }
+          },
+          "description": "Fresh reasontype"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReasonType"
+                }
+              }
+            },
+            "description": "Response reasontypes created just now"
+          }
+        },
+        "tags": [
+          "ReasonTypeV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/reasontypes/{name}": {
+      "delete": {
+        "description": "Delete ReasonType",
+        "operationId": "deleteReasonType",
+        "parameters": [
+          {
+            "description": "Name of reasontype",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response reasontype deleted just now"
+          }
+        },
+        "tags": [
+          "ReasonTypeV1alpha1"
+        ]
+      },
+      "get": {
+        "description": "Get ReasonType",
+        "operationId": "getReasonType",
+        "parameters": [
+          {
+            "description": "Name of reasontype",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReasonType"
+                }
+              }
+            },
+            "description": "Response single reasontype"
+          }
+        },
+        "tags": [
+          "ReasonTypeV1alpha1"
+        ]
+      },
+      "patch": {
+        "description": "Patch ReasonType",
+        "operationId": "patchReasonType",
+        "parameters": [
+          {
+            "description": "Name of reasontype",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReasonType"
+                }
+              }
+            },
+            "description": "Response reasontype patched just now"
+          }
+        },
+        "tags": [
+          "ReasonTypeV1alpha1"
+        ]
+      },
+      "put": {
+        "description": "Update ReasonType",
+        "operationId": "updateReasonType",
+        "parameters": [
+          {
+            "description": "Name of reasontype",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonType"
+              }
+            }
+          },
+          "description": "Updated reasontype"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReasonType"
+                }
+              }
+            },
+            "description": "Response reasontypes updated just now"
+          }
+        },
+        "tags": [
+          "ReasonTypeV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/subscriptions": {
+      "get": {
+        "description": "List Subscription",
+        "operationId": "listSubscription",
+        "parameters": [
+          {
+            "description": "Page number. Default is 0.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Size number. Default is 0.",
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Label selector. e.g.: hidden!\u003dtrue",
+            "in": "query",
+            "name": "labelSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Field selector. e.g.: metadata.name\u003d\u003dhalo",
+            "in": "query",
+            "name": "fieldSelector",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionList"
+                }
+              }
+            },
+            "description": "Response subscriptions"
+          }
+        },
+        "tags": [
+          "SubscriptionV1alpha1"
+        ]
+      },
+      "post": {
+        "description": "Create Subscription",
+        "operationId": "createSubscription",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/Subscription"
+              }
+            }
+          },
+          "description": "Fresh subscription"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description": "Response subscriptions created just now"
+          }
+        },
+        "tags": [
+          "SubscriptionV1alpha1"
+        ]
+      }
+    },
+    "/apis/notification.halo.run/v1alpha1/subscriptions/{name}": {
+      "delete": {
+        "description": "Delete Subscription",
+        "operationId": "deleteSubscription",
+        "parameters": [
+          {
+            "description": "Name of subscription",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response subscription deleted just now"
+          }
+        },
+        "tags": [
+          "SubscriptionV1alpha1"
+        ]
+      },
+      "get": {
+        "description": "Get Subscription",
+        "operationId": "getSubscription",
+        "parameters": [
+          {
+            "description": "Name of subscription",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description": "Response single subscription"
+          }
+        },
+        "tags": [
+          "SubscriptionV1alpha1"
+        ]
+      },
+      "patch": {
+        "description": "Patch Subscription",
+        "operationId": "patchSubscription",
+        "parameters": [
+          {
+            "description": "Name of subscription",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description": "Response subscription patched just now"
+          }
+        },
+        "tags": [
+          "SubscriptionV1alpha1"
+        ]
+      },
+      "put": {
+        "description": "Update Subscription",
+        "operationId": "updateSubscription",
+        "parameters": [
+          {
+            "description": "Name of subscription",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/Subscription"
+              }
+            }
+          },
+          "description": "Updated subscription"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description": "Response subscriptions updated just now"
+          }
+        },
+        "tags": [
+          "SubscriptionV1alpha1"
+        ]
+      }
+    },
     "/apis/plugin.halo.run/v1alpha1/extensiondefinitions": {
       "get": {
         "description": "List ExtensionDefinition",
@@ -5705,247 +7127,10 @@
         ]
       }
     },
-    "/apis/plugin.halo.run/v1alpha1/searchengines": {
-      "get": {
-        "description": "List SearchEngine",
-        "operationId": "listSearchEngine",
-        "parameters": [
-          {
-            "description": "Page number. Default is 0.",
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "description": "Size number. Default is 0.",
-            "in": "query",
-            "name": "size",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "description": "Label selector. e.g.: hidden!\u003dtrue",
-            "in": "query",
-            "name": "labelSelector",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          {
-            "description": "Field selector. e.g.: metadata.name\u003d\u003dhalo",
-            "in": "query",
-            "name": "fieldSelector",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          {
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-            "in": "query",
-            "name": "sort",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchEngineList"
-                }
-              }
-            },
-            "description": "Response searchengines"
-          }
-        },
-        "tags": [
-          "SearchEngineV1alpha1"
-        ]
-      },
-      "post": {
-        "description": "Create SearchEngine",
-        "operationId": "createSearchEngine",
-        "requestBody": {
-          "content": {
-            "*/*": {
-              "schema": {
-                "$ref": "#/components/schemas/SearchEngine"
-              }
-            }
-          },
-          "description": "Fresh searchengine"
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchEngine"
-                }
-              }
-            },
-            "description": "Response searchengines created just now"
-          }
-        },
-        "tags": [
-          "SearchEngineV1alpha1"
-        ]
-      }
-    },
-    "/apis/plugin.halo.run/v1alpha1/searchengines/{name}": {
-      "delete": {
-        "description": "Delete SearchEngine",
-        "operationId": "deleteSearchEngine",
-        "parameters": [
-          {
-            "description": "Name of searchengine",
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Response searchengine deleted just now"
-          }
-        },
-        "tags": [
-          "SearchEngineV1alpha1"
-        ]
-      },
-      "get": {
-        "description": "Get SearchEngine",
-        "operationId": "getSearchEngine",
-        "parameters": [
-          {
-            "description": "Name of searchengine",
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchEngine"
-                }
-              }
-            },
-            "description": "Response single searchengine"
-          }
-        },
-        "tags": [
-          "SearchEngineV1alpha1"
-        ]
-      },
-      "patch": {
-        "description": "Patch SearchEngine",
-        "operationId": "patchSearchEngine",
-        "parameters": [
-          {
-            "description": "Name of searchengine",
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json-patch+json": {
-              "schema": {
-                "$ref": "#/components/schemas/JsonPatch"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchEngine"
-                }
-              }
-            },
-            "description": "Response searchengine patched just now"
-          }
-        },
-        "tags": [
-          "SearchEngineV1alpha1"
-        ]
-      },
-      "put": {
-        "description": "Update SearchEngine",
-        "operationId": "updateSearchEngine",
-        "parameters": [
-          {
-            "description": "Name of searchengine",
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "*/*": {
-              "schema": {
-                "$ref": "#/components/schemas/SearchEngine"
-              }
-            }
-          },
-          "description": "Updated searchengine"
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchEngine"
-                }
-              }
-            },
-            "description": "Response searchengines updated just now"
-          }
-        },
-        "tags": [
-          "SearchEngineV1alpha1"
-        ]
-      }
-    },
     "/apis/security.halo.run/v1alpha1/devices": {
       "get": {
-        "description": "List v1alpha1",
-        "operationId": "listv1alpha1",
+        "description": "List Device",
+        "operationId": "listDevice",
         "parameters": [
           {
             "description": "Page number. Default is 0.",
@@ -6004,7 +7189,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/v1alpha1List"
+                  "$ref": "#/components/schemas/DeviceList"
                 }
               }
             },
@@ -6012,12 +7197,12 @@
           }
         },
         "tags": [
-          "v1alpha1V1alpha1"
+          "DeviceV1alpha1"
         ]
       },
       "post": {
-        "description": "Create v1alpha1",
-        "operationId": "createv1alpha1",
+        "description": "Create Device",
+        "operationId": "createDevice",
         "requestBody": {
           "content": {
             "*/*": {
@@ -6041,14 +7226,14 @@
           }
         },
         "tags": [
-          "v1alpha1V1alpha1"
+          "DeviceV1alpha1"
         ]
       }
     },
     "/apis/security.halo.run/v1alpha1/devices/{name}": {
       "delete": {
-        "description": "Delete v1alpha1",
-        "operationId": "deletev1alpha1",
+        "description": "Delete Device",
+        "operationId": "deleteDevice",
         "parameters": [
           {
             "description": "Name of device",
@@ -6066,12 +7251,12 @@
           }
         },
         "tags": [
-          "v1alpha1V1alpha1"
+          "DeviceV1alpha1"
         ]
       },
       "get": {
-        "description": "Get v1alpha1",
-        "operationId": "getv1alpha1",
+        "description": "Get Device",
+        "operationId": "getDevice",
         "parameters": [
           {
             "description": "Name of device",
@@ -6096,12 +7281,12 @@
           }
         },
         "tags": [
-          "v1alpha1V1alpha1"
+          "DeviceV1alpha1"
         ]
       },
       "patch": {
-        "description": "Patch v1alpha1",
-        "operationId": "patchv1alpha1",
+        "description": "Patch Device",
+        "operationId": "patchDevice",
         "parameters": [
           {
             "description": "Name of device",
@@ -6135,12 +7320,12 @@
           }
         },
         "tags": [
-          "v1alpha1V1alpha1"
+          "DeviceV1alpha1"
         ]
       },
       "put": {
-        "description": "Update v1alpha1",
-        "operationId": "updatev1alpha1",
+        "description": "Update Device",
+        "operationId": "updateDevice",
         "parameters": [
           {
             "description": "Name of device",
@@ -6175,7 +7360,7 @@
           }
         },
         "tags": [
-          "v1alpha1V1alpha1"
+          "DeviceV1alpha1"
         ]
       }
     },
@@ -7887,7 +9072,8 @@
           "spec": {
             "$ref": "#/components/schemas/AnnotationSettingSpec"
           }
-        }
+        },
+        "description": "Annotation setting extension that defines dynamic annotation forms for a target extension kind."
       },
       "AnnotationSettingList": {
         "required": [
@@ -7909,7 +9095,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -7958,6 +9144,7 @@
           "formSchema": {
             "minLength": 1,
             "type": "array",
+            "description": "FormKit-compatible schema used to render annotation fields.",
             "items": {
               "minLength": 1,
               "type": "object"
@@ -7966,7 +9153,8 @@
           "targetRef": {
             "$ref": "#/components/schemas/GroupKind"
           }
-        }
+        },
+        "description": "Desired annotation form configuration for a target resource kind."
       },
       "Attachment": {
         "required": [
@@ -7992,7 +9180,8 @@
           "status": {
             "$ref": "#/components/schemas/AttachmentStatus"
           }
-        }
+        },
+        "description": "Attachment extension that describes an uploaded file and its resolved access URLs."
       },
       "AttachmentList": {
         "required": [
@@ -8014,7 +9203,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -8058,49 +9247,57 @@
         "properties": {
           "displayName": {
             "type": "string",
-            "description": "Display name of attachment"
+            "description": "Display name shown for the attachment."
           },
           "groupName": {
             "type": "string",
-            "description": "Group name"
+            "description": "Attachment group metadata.name this attachment belongs to."
           },
           "mediaType": {
             "type": "string",
-            "description": "Media type of attachment"
+            "description": "Media type detected or supplied for the attachment, such as image/png."
           },
           "ownerName": {
             "type": "string",
-            "description": "Name of User who uploads the attachment"
+            "description": "User metadata.name of the uploader."
           },
           "policyName": {
             "type": "string",
-            "description": "Policy name"
+            "description": "Storage policy metadata.name used to store this attachment."
           },
           "size": {
             "minimum": 0,
             "type": "integer",
-            "description": "Size of attachment. Unit is Byte",
+            "description": "Size of the attachment in bytes.",
             "format": "int64"
           },
           "tags": {
             "uniqueItems": true,
             "type": "array",
-            "description": "Tags of attachment",
+            "description": "Free-form tags assigned to the attachment.",
             "items": {
-              "type": "string",
-              "description": "Tag name"
+              "type": "string"
             }
           }
-        }
+        },
+        "description": "Desired attachment metadata and storage placement."
       },
       "AttachmentStatus": {
         "type": "object",
         "properties": {
           "permalink": {
             "type": "string",
-            "description": "Permalink of attachment.\nIf it is in local storage, the public URL will be set.\nIf it is in s3 storage, the Object URL will be set.\n"
+            "description": "Public permalink for the attachment. Local storage usually exposes a public URL, while object storage may\n expose the object URL."
+          },
+          "thumbnails": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Generated thumbnail URLs keyed by thumbnail size name."
           }
-        }
+        },
+        "description": "Observed attachment access state."
       },
       "AuthProvider": {
         "required": [
@@ -8123,7 +9320,8 @@
           "spec": {
             "$ref": "#/components/schemas/AuthProviderSpec"
           }
-        }
+        },
+        "description": "Authentication provider extension that describes an external or form-based sign-in integration."
       },
       "AuthProviderList": {
         "required": [
@@ -8145,7 +9343,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -8186,48 +9384,68 @@
       },
       "AuthProviderSpec": {
         "required": [
+          "authType",
           "authenticationUrl",
           "displayName"
         ],
         "type": "object",
         "properties": {
+          "authType": {
+            "type": "string",
+            "description": "Auth type: form or oauth2.",
+            "enum": [
+              "FORM",
+              "OAUTH2"
+            ]
+          },
           "authenticationUrl": {
             "type": "string",
-            "description": "Authentication url of the auth provider"
+            "description": "URL that starts the authentication flow."
           },
           "bindingUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "URL that starts account binding for an already signed-in user."
           },
           "configMapRef": {
             "$ref": "#/components/schemas/ConfigMapRef"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable description of the provider."
           },
           "displayName": {
             "type": "string",
-            "description": "Display name of the auth provider"
+            "description": "Display name shown on sign-in and account binding screens."
           },
           "helpPage": {
-            "type": "string"
+            "type": "string",
+            "description": "Help page URL for users who need sign-in assistance."
           },
           "logo": {
-            "type": "string"
+            "type": "string",
+            "description": "Logo URL or attachment URI for the provider."
           },
-          "priority": {
-            "type": "integer",
-            "format": "int32"
+          "method": {
+            "type": "string",
+            "description": "HTTP method used when starting the authentication flow."
+          },
+          "rememberMeSupport": {
+            "type": "boolean",
+            "description": "Whether the provider supports remember-me during sign-in."
           },
           "settingRef": {
             "$ref": "#/components/schemas/SettingRef"
           },
           "unbindUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "URL that unbinds the external account from the current user."
           },
           "website": {
-            "type": "string"
+            "type": "string",
+            "description": "Provider website URL."
           }
-        }
+        },
+        "description": "Authentication provider metadata and endpoint configuration."
       },
       "Author": {
         "required": [
@@ -8237,12 +9455,15 @@
         "properties": {
           "name": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Author display name."
           },
           "website": {
-            "type": "string"
+            "type": "string",
+            "description": "Author website URL."
           }
-        }
+        },
+        "description": "Theme author metadata."
       },
       "Backup": {
         "required": [
@@ -8267,7 +9488,8 @@
           "status": {
             "$ref": "#/components/schemas/BackupStatus"
           }
-        }
+        },
+        "description": "Backup metadata and runtime state for an exported Halo data package."
       },
       "BackupList": {
         "required": [
@@ -8289,7 +9511,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -8333,32 +9555,39 @@
         "properties": {
           "expiresAt": {
             "type": "string",
+            "description": "Time after which the generated backup should be considered expired.",
             "format": "date-time"
           },
           "format": {
             "type": "string",
-            "description": "Backup file format. Currently, only zip format is supported."
+            "description": "Backup file format. Currently, only zip is supported."
           }
-        }
+        },
+        "description": "Desired backup options."
       },
       "BackupStatus": {
         "type": "object",
         "properties": {
           "completionTimestamp": {
             "type": "string",
+            "description": "Time when backup execution finished, regardless of success or failure.",
             "format": "date-time"
           },
           "failureMessage": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable failure message for a failed backup."
           },
           "failureReason": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable failure reason code for a failed backup."
           },
           "filename": {
-            "type": "string"
+            "type": "string",
+            "description": "Name of the generated backup file."
           },
           "phase": {
             "type": "string",
+            "description": "Current backup execution phase.",
             "enum": [
               "PENDING",
               "RUNNING",
@@ -8368,13 +9597,16 @@
           },
           "size": {
             "type": "integer",
+            "description": "Size of the generated backup file in bytes.",
             "format": "int64"
           },
           "startTimestamp": {
             "type": "string",
+            "description": "Time when backup execution started.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Observed backup execution state."
       },
       "Category": {
         "required": [
@@ -8400,7 +9632,8 @@
           "status": {
             "$ref": "#/components/schemas/CategoryStatus"
           }
-        }
+        },
+        "description": "Category extension for grouping posts and building category archives."
       },
       "CategoryList": {
         "required": [
@@ -8422,7 +9655,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -8471,60 +9704,82 @@
         "properties": {
           "children": {
             "type": "array",
+            "description": "Legacy child Category metadata.name values. Category hierarchy is now sourced from Category.spec.parent.",
+            "deprecated": true,
             "items": {
-              "type": "string"
+              "type": "string",
+              "description": "Legacy child Category metadata.name values. Category hierarchy is now sourced from Category.spec.parent.",
+              "deprecated": true
             }
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "Cover image URL or attachment URI of the category."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable description of the category."
           },
           "displayName": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Display name of the category."
           },
           "hideFromList": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Hides this root category tree and its posts from theme-side lists. Permalinks remain accessible, and only\n root categories are expected to set this flag."
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent Category metadata.name. Root categories leave this unset."
           },
           "postTemplate": {
             "maxLength": 255,
-            "type": "string"
+            "type": "string",
+            "description": "Theme template used for posts in this category when the post does not specify its own spec.template."
           },
           "preventParentPostCascadeQuery": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Stops parent category post queries from cascading into this category tree. Direct post queries for this\n category are unaffected."
           },
           "priority": {
             "type": "integer",
+            "description": "Sorting priority. Higher values sort before lower values where priority ordering is applied.",
             "format": "int32",
             "default": 0
           },
           "slug": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "URL slug used to build the category permalink."
           },
           "template": {
             "maxLength": 255,
-            "type": "string"
+            "type": "string",
+            "description": "Theme template used to render the category archive page."
           }
-        }
+        },
+        "description": "Desired category display, hierarchy, and rendering configuration."
       },
       "CategoryStatus": {
         "type": "object",
         "properties": {
           "permalink": {
-            "type": "string"
+            "type": "string",
+            "description": "Absolute permalink calculated from the category permalink policy."
           },
           "postCount": {
             "type": "integer",
+            "description": "Total number of posts in this category and all descendant categories.",
             "format": "int32"
           },
           "visiblePostCount": {
             "type": "integer",
+            "description": "Total number of published and public posts in this category and all descendant categories.",
             "format": "int32"
           }
-        }
+        },
+        "description": "Observed category state derived by content reconcilers."
       },
       "Comment": {
         "required": [
@@ -8550,7 +9805,8 @@
           "status": {
             "$ref": "#/components/schemas/CommentStatus"
           }
-        }
+        },
+        "description": "Comment extension for a post, single page, or another commentable subject."
       },
       "CommentList": {
         "required": [
@@ -8572,7 +9828,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -8622,20 +9878,25 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "Additional owner metadata, such as avatar, website, or email hash."
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown for the owner."
           },
           "kind": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Owner identity kind. Built-in values are User and Email."
           },
           "name": {
             "maxLength": 64,
-            "type": "string"
+            "type": "string",
+            "description": "Owner identifier. For User owners, this is the User metadata.name; for Email owners, an email address."
           }
-        }
+        },
+        "description": "Identity of a comment or reply owner."
       },
       "CommentSpec": {
         "required": [
@@ -8653,33 +9914,41 @@
         "properties": {
           "allowNotification": {
             "type": "boolean",
+            "description": "Whether notification subscriptions should be created for this comment or reply.",
             "default": true
           },
           "approved": {
             "type": "boolean",
+            "description": "Whether the comment has passed moderation and may be visible.",
             "default": false
           },
           "approvedTime": {
             "type": "string",
+            "description": "Time when the comment was approved.",
             "format": "date-time"
           },
           "content": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Rendered HTML content displayed to REST and theme consumers."
           },
           "creationTime": {
             "type": "string",
+            "description": "Creation time supplied by the caller. If absent, metadata.creationTimestamp is used.",
             "format": "date-time"
           },
           "hidden": {
             "type": "boolean",
+            "description": "Whether the comment should be hidden from public REST and theme output.",
             "default": false
           },
           "ipAddress": {
-            "type": "string"
+            "type": "string",
+            "description": "IP address recorded when the comment was submitted."
           },
           "lastReadTime": {
             "type": "string",
+            "description": "Latest time the comment owner has read replies for this comment.",
             "format": "date-time"
           },
           "owner": {
@@ -8687,52 +9956,69 @@
           },
           "priority": {
             "type": "integer",
+            "description": "Sorting priority. Higher values sort before lower values where priority ordering is applied.",
             "format": "int32",
             "default": 0
           },
           "raw": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Raw comment body submitted by the owner before HTML sanitization and rendering."
           },
           "subjectRef": {
             "$ref": "#/components/schemas/Ref"
           },
           "top": {
             "type": "boolean",
+            "description": "Whether the comment is pinned above normal comment ordering.",
             "default": false
           },
           "userAgent": {
-            "type": "string"
+            "type": "string",
+            "description": "Browser user agent recorded when the comment was submitted."
           }
-        }
+        },
+        "description": "Desired state of a top-level comment."
       },
       "CommentStatus": {
         "type": "object",
         "properties": {
           "hasNewReply": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether unreadReplyCount is greater than zero."
           },
           "lastReplyTime": {
             "type": "string",
+            "description": "Creation time of the latest reply under this comment.",
             "format": "date-time"
           },
           "observedVersion": {
             "type": "integer",
+            "description": "Metadata version observed by the last successful reconciliation.",
             "format": "int64"
+          },
+          "pendingReplyCount": {
+            "type": "integer",
+            "description": "Total number of not yet approved replies under this comment.",
+            "format": "int32"
           },
           "replyCount": {
             "type": "integer",
+            "description": "Total number of replies under this comment.",
             "format": "int32"
           },
           "unreadReplyCount": {
             "type": "integer",
+            "description": "Number of replies created after the comment owner\u0027s last read time.",
             "format": "int32"
           },
           "visibleReplyCount": {
             "type": "integer",
+            "description": "Total number of approved and non-hidden replies under this comment.",
             "format": "int32"
           }
-        }
+        },
+        "description": "Observed state of a top-level comment."
       },
       "Condition": {
         "required": [
@@ -8744,19 +10030,23 @@
         "properties": {
           "lastTransitionTime": {
             "type": "string",
+            "description": "Last time the condition transitioned from one status to another.",
             "format": "date-time"
           },
           "message": {
             "maxLength": 32768,
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable message indicating details about last transition. This may be an empty string."
           },
           "reason": {
             "maxLength": 1024,
             "pattern": "^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$",
-            "type": "string"
+            "type": "string",
+            "description": "Unique, one-word, CamelCase reason for the condition\u0027s last transition."
           },
           "status": {
             "type": "string",
+            "description": "Status is the status of the condition. Can be True, False, Unknown.",
             "enum": [
               "TRUE",
               "FALSE",
@@ -8766,9 +10056,11 @@
           "type": {
             "maxLength": 316,
             "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$",
-            "type": "string"
+            "type": "string",
+            "description": "type of condition in CamelCase or in foo.example.com/CamelCase. example: Ready, Initialized. maxLength: 316."
           }
-        }
+        },
+        "description": "EqualsAndHashCode 排除了lastTransitionTime否则失败时，lastTransitionTime 会被更新 导致 equals 为 false，一直被加入队列."
       },
       "ConfigMap": {
         "required": [
@@ -8785,7 +10077,8 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "String key-value configuration entries consumed by Halo or plugins."
           },
           "kind": {
             "type": "string"
@@ -8793,7 +10086,8 @@
           "metadata": {
             "$ref": "#/components/schemas/Metadata"
           }
-        }
+        },
+        "description": "ConfigMap holds configuration data to consume."
       },
       "ConfigMapList": {
         "required": [
@@ -8815,7 +10109,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -8862,14 +10156,16 @@
         "properties": {
           "name": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "ConfigMap metadata.name."
           }
-        }
+        },
+        "description": "Reference to a ConfigMap used by this provider."
       },
       "CopyOperation": {
         "required": [
-          "op",
           "from",
+          "op",
           "path"
         ],
         "type": "object",
@@ -8907,10 +10203,12 @@
           },
           "approvedComment": {
             "type": "integer",
+            "description": "Number of approved comments recorded for the resource.",
             "format": "int32"
           },
           "downvote": {
             "type": "integer",
+            "description": "Number of downvotes recorded for the resource.",
             "format": "int32"
           },
           "kind": {
@@ -8921,17 +10219,21 @@
           },
           "totalComment": {
             "type": "integer",
+            "description": "Total number of comments recorded for the resource.",
             "format": "int32"
           },
           "upvote": {
             "type": "integer",
+            "description": "Number of upvotes recorded for the resource.",
             "format": "int32"
           },
           "visit": {
             "type": "integer",
+            "description": "Number of visits recorded for the resource.",
             "format": "int32"
           }
-        }
+        },
+        "description": "Counter extension that stores aggregate interaction counts for a resource."
       },
       "CounterList": {
         "required": [
@@ -8953,7 +10255,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -8997,23 +10299,27 @@
         "properties": {
           "category": {
             "type": "array",
+            "description": "Custom templates available for categories.",
             "items": {
               "$ref": "#/components/schemas/TemplateDescriptor"
             }
           },
           "page": {
             "type": "array",
+            "description": "Custom templates available for single pages.",
             "items": {
               "$ref": "#/components/schemas/TemplateDescriptor"
             }
           },
           "post": {
             "type": "array",
+            "description": "Custom templates available for posts.",
             "items": {
               "$ref": "#/components/schemas/TemplateDescriptor"
             }
           }
-        }
+        },
+        "description": "Custom template descriptors grouped by the content type they render."
       },
       "Device": {
         "required": [
@@ -9040,6 +10346,66 @@
           "status": {
             "$ref": "#/components/schemas/DeviceStatus"
           }
+        },
+        "description": "Device extension that records an authenticated browser session for account security visibility."
+      },
+      "DeviceList": {
+        "required": [
+          "first",
+          "hasNext",
+          "hasPrevious",
+          "items",
+          "last",
+          "page",
+          "size",
+          "total",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the first page."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether current page has next page."
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Indicates whether current page has previous page."
+          },
+          "items": {
+            "type": "array",
+            "description": "A chunk of items.",
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            }
+          },
+          "last": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the last page."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total elements.",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Indicates total pages.",
+            "format": "int64"
+          }
         }
       },
       "DeviceSpec": {
@@ -9052,43 +10418,54 @@
         "properties": {
           "ipAddress": {
             "maxLength": 129,
-            "type": "string"
+            "type": "string",
+            "description": "Client IP address observed for the session."
           },
           "lastAccessedTime": {
             "type": "string",
+            "description": "Last time this session accessed Halo.",
             "format": "date-time"
           },
           "lastAuthenticatedTime": {
             "type": "string",
+            "description": "Last time the user authenticated for this session.",
             "format": "date-time"
           },
           "principalName": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Principal name of the authenticated user."
           },
           "rememberMeSeriesId": {
-            "type": "string"
+            "type": "string",
+            "description": "Remember-me series id associated with the session, if any."
           },
           "sessionId": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Web session identifier associated with the device."
           },
           "userAgent": {
             "maxLength": 500,
-            "type": "string"
+            "type": "string",
+            "description": "Client user-agent header captured for the session."
           }
-        }
+        },
+        "description": "Session identity and request metadata captured for a device."
       },
       "DeviceStatus": {
         "type": "object",
         "properties": {
           "browser": {
-            "type": "string"
+            "type": "string",
+            "description": "Browser name parsed from the user agent."
           },
           "os": {
-            "type": "string"
+            "type": "string",
+            "description": "Operating system name parsed from the user agent."
           }
-        }
+        },
+        "description": "Parsed browser and operating system details for display."
       },
       "Excerpt": {
         "required": [
@@ -9098,12 +10475,15 @@
         "properties": {
           "autoGenerate": {
             "type": "boolean",
+            "description": "Whether Halo should generate the excerpt from the released content automatically.",
             "default": true
           },
           "raw": {
-            "type": "string"
+            "type": "string",
+            "description": "Manual excerpt text used when autoGenerate is false."
           }
-        }
+        },
+        "description": "Excerpt generation configuration for a post or single page."
       },
       "ExtensionDefinition": {
         "required": [
@@ -9126,7 +10506,8 @@
           "spec": {
             "$ref": "#/components/schemas/ExtensionSpec"
           }
-        }
+        },
+        "description": "Extension definition that describes one plugin-provided implementation of an extension point."
       },
       "ExtensionDefinitionList": {
         "required": [
@@ -9148,7 +10529,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -9208,7 +10589,8 @@
           "spec": {
             "$ref": "#/components/schemas/ExtensionPointSpec"
           }
-        }
+        },
+        "description": "Extension point definition that advertises where plugins can contribute implementations."
       },
       "ExtensionPointDefinitionList": {
         "required": [
@@ -9230,7 +10612,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -9278,25 +10660,31 @@
         "type": "object",
         "properties": {
           "className": {
-            "type": "string"
+            "type": "string",
+            "description": "Fully qualified Java class name of the extension point interface."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable description of what this extension point allows plugins to provide."
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown for the extension point."
           },
           "icon": {
-            "type": "string"
+            "type": "string",
+            "description": "Icon URL, class, or identifier shown for the extension point."
           },
           "type": {
             "type": "string",
+            "description": "Registration mode used when loading implementations for this extension point.",
             "enum": [
               "SINGLETON",
               "MULTI_INSTANCE"
             ]
           }
-        }
+        },
+        "description": "Desired extension point metadata."
       },
       "ExtensionSpec": {
         "required": [
@@ -9307,21 +10695,27 @@
         "type": "object",
         "properties": {
           "className": {
-            "type": "string"
+            "type": "string",
+            "description": "Fully qualified Java class name of the implementation."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable description of what this implementation does."
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown for the implementation."
           },
           "extensionPointName": {
-            "type": "string"
+            "type": "string",
+            "description": "ExtensionPointDefinition metadata.name this implementation contributes to."
           },
           "icon": {
-            "type": "string"
+            "type": "string",
+            "description": "Icon URL, class, or identifier shown for the implementation."
           }
-        }
+        },
+        "description": "Desired plugin-provided extension implementation metadata."
       },
       "FileReverseProxyProvider": {
         "type": "object",
@@ -9332,7 +10726,8 @@
           "filename": {
             "type": "string"
           }
-        }
+        },
+        "description": "File provider that resolves a request to a plugin or theme file location."
       },
       "Group": {
         "required": [
@@ -9358,18 +10753,22 @@
           "status": {
             "$ref": "#/components/schemas/GroupStatus"
           }
-        }
+        },
+        "description": "Attachment group extension used to organize attachments and expose aggregate counts."
       },
       "GroupKind": {
         "type": "object",
         "properties": {
           "group": {
-            "type": "string"
+            "type": "string",
+            "description": "is group name of Extension."
           },
           "kind": {
-            "type": "string"
+            "type": "string",
+            "description": "is kind name of Extension."
           }
-        }
+        },
+        "description": "GroupKind contains group and kind data only."
       },
       "GroupList": {
         "required": [
@@ -9391,7 +10790,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -9438,9 +10837,10 @@
         "properties": {
           "displayName": {
             "type": "string",
-            "description": "Display name of group"
+            "description": "Display name shown for the attachment group."
           }
-        }
+        },
+        "description": "Desired attachment group metadata."
       },
       "GroupStatus": {
         "type": "object",
@@ -9448,15 +10848,61 @@
           "totalAttachments": {
             "minimum": 0,
             "type": "integer",
-            "description": "Total of attachments under the current group",
+            "description": "Total number of attachments under the group.",
             "format": "int64"
           },
           "updateTimestamp": {
             "type": "string",
-            "description": "Update timestamp of the group",
+            "description": "Last time the group aggregate state was updated.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Observed attachment group aggregate state."
+      },
+      "InterestReason": {
+        "required": [
+          "reasonType",
+          "subject"
+        ],
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string",
+            "description": "Optional expression used to match reasons more flexibly than subject matching."
+          },
+          "reasonType": {
+            "type": "string",
+            "description": "ReasonType metadata.name this subscription is interested in."
+          },
+          "subject": {
+            "$ref": "#/components/schemas/InterestReasonSubject"
+          }
+        },
+        "description": "Reason selector that decides which notifications match this subscription."
+      },
+      "InterestReasonSubject": {
+        "required": [
+          "apiVersion",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Subject API version."
+          },
+          "kind": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Subject kind."
+          },
+          "name": {
+            "type": "string",
+            "description": "Subject metadata.name. If omitted, all subjects of the selected kind and API version are matched."
+          }
+        },
+        "description": "Subject selector used by a subscription interest reason."
       },
       "JsonPatch": {
         "minItems": 1,
@@ -9495,34 +10941,8 @@
           "url": {
             "type": "string"
           }
-        }
-      },
-      "LoginHistory": {
-        "required": [
-          "loginAt",
-          "sourceIp",
-          "successful",
-          "userAgent"
-        ],
-        "type": "object",
-        "properties": {
-          "loginAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "sourceIp": {
-            "type": "string"
-          },
-          "successful": {
-            "type": "boolean"
-          },
-          "userAgent": {
-            "type": "string"
-          }
-        }
+        },
+        "description": "Common data objects for license."
       },
       "Menu": {
         "required": [
@@ -9545,7 +10965,8 @@
           "spec": {
             "$ref": "#/components/schemas/MenuSpec"
           }
-        }
+        },
+        "description": "Menu extension that groups ordered menu items for theme navigation."
       },
       "MenuItem": {
         "required": [
@@ -9571,7 +10992,8 @@
           "status": {
             "$ref": "#/components/schemas/MenuItemStatus"
           }
-        }
+        },
+        "description": "Menu item extension that describes a navigable item and its resolved rendering state."
       },
       "MenuItemList": {
         "required": [
@@ -9593,7 +11015,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -9638,28 +11060,47 @@
           "children": {
             "uniqueItems": true,
             "type": "array",
-            "description": "Children of this menu item",
+            "description": "Legacy child MenuItem names. Menu hierarchy is now sourced from MenuItem.spec.menuName and MenuItem.spec.parent.",
+            "deprecated": true,
             "items": {
               "type": "string",
-              "description": "The name of menu item child"
+              "description": "Legacy child MenuItem names. Menu hierarchy is now sourced from MenuItem.spec.menuName and MenuItem.spec.parent.",
+              "deprecated": true
             }
           },
           "displayName": {
             "type": "string",
-            "description": "The display name of menu item."
+            "description": "Display name shown for the menu item."
           },
           "href": {
             "type": "string",
-            "description": "The href of this menu item."
+            "description": "Direct URL used by the menu item."
+          },
+          "menuName": {
+            "type": "string",
+            "description": "Owning Menu metadata.name. Optional for compatibility with legacy raw payloads."
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent MenuItem metadata.name in the same menu. Root items leave this unset."
           },
           "priority": {
             "type": "integer",
-            "description": "The priority is for ordering.",
+            "description": "Sorting priority. Higher values sort before lower values where priority ordering is applied.",
             "format": "int32"
+          },
+          "routeRef": {
+            "type": "string",
+            "description": "Built-in theme route resolved into status.href.",
+            "enum": [
+              "archives",
+              "categories",
+              "tags"
+            ]
           },
           "target": {
             "type": "string",
-            "description": "The \u003ca\u003e target attribute of this menu item.",
+            "description": "HTML anchor target used by the menu item.",
             "enum": [
               "_blank",
               "_self",
@@ -9671,21 +11112,21 @@
             "$ref": "#/components/schemas/Ref"
           }
         },
-        "description": "The spec of menu item."
+        "description": "Desired menu item configuration."
       },
       "MenuItemStatus": {
         "type": "object",
         "properties": {
           "displayName": {
             "type": "string",
-            "description": "Calculated Display name of menu item."
+            "description": "Calculated display name after resolving targetRef, falling back to spec.displayName."
           },
           "href": {
             "type": "string",
-            "description": "Calculated href of manu item."
+            "description": "Calculated href after resolving targetRef, falling back to spec.href."
           }
         },
-        "description": "The status of menu item."
+        "description": "Resolved menu item values used for rendering."
       },
       "MenuList": {
         "required": [
@@ -9707,7 +11148,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -9754,19 +11195,21 @@
         "properties": {
           "displayName": {
             "type": "string",
-            "description": "The display name of the menu."
+            "description": "Display name shown for the menu."
           },
           "menuItems": {
             "uniqueItems": true,
             "type": "array",
-            "description": "Names of menu children below this menu.",
+            "description": "Legacy ordered root MenuItem names. Menu hierarchy is now sourced from MenuItem.spec.menuName and MenuItem.spec.parent.",
+            "deprecated": true,
             "items": {
               "type": "string",
-              "description": "Names of menu children below this menu."
+              "description": "Legacy ordered root MenuItem names. Menu hierarchy is now sourced from MenuItem.spec.menuName and MenuItem.spec.parent.",
+              "deprecated": true
             }
           }
         },
-        "description": "The spec of menu."
+        "description": "Desired menu configuration."
       },
       "Metadata": {
         "required": [
@@ -9778,15 +11221,18 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "Annotations are like key-value format."
           },
           "creationTimestamp": {
             "type": "string",
+            "description": "Creation timestamp of the Extension.",
             "format": "date-time",
             "nullable": true
           },
           "deletionTimestamp": {
             "type": "string",
+            "description": "Deletion timestamp of the Extension.",
             "format": "date-time",
             "nullable": true
           },
@@ -9807,7 +11253,8 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "Labels are like key-value format."
           },
           "name": {
             "type": "string",
@@ -9815,15 +11262,17 @@
           },
           "version": {
             "type": "integer",
+            "description": "Current version of the Extension. It will be bumped up every update.",
             "format": "int64",
             "nullable": true
           }
-        }
+        },
+        "description": "Metadata of Extension."
       },
       "MoveOperation": {
         "required": [
-          "op",
           "from",
+          "op",
           "path"
         ],
         "type": "object",
@@ -9848,6 +11297,384 @@
           }
         }
       },
+      "Notification": {
+        "required": [
+          "apiVersion",
+          "kind",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/NotificationSpec"
+          }
+        },
+        "description": "Notification extension that stores an on-site notification delivered to a Halo user.\n\n \u003cp\u003eSupports the following operations:\n\n \u003cul\u003e\n   \u003cli\u003eMarked as read: {@link NotificationSpec#setUnread(boolean) NotificationSpec#setUnread(boolean)}\n   \u003cli\u003eGet the last read time: {@link NotificationSpec#getLastReadAt NotificationSpec#getLastReadAt()}\n   \u003cli\u003eFilter by recipient: {@link NotificationSpec#getRecipient NotificationSpec#getRecipient()}\n \u003c/ul\u003e"
+      },
+      "NotificationList": {
+        "required": [
+          "first",
+          "hasNext",
+          "hasPrevious",
+          "items",
+          "last",
+          "page",
+          "size",
+          "total",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the first page."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether current page has next page."
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Indicates whether current page has previous page."
+          },
+          "items": {
+            "type": "array",
+            "description": "A chunk of items.",
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            }
+          },
+          "last": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the last page."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total elements.",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Indicates total pages.",
+            "format": "int64"
+          }
+        }
+      },
+      "NotificationSpec": {
+        "required": [
+          "htmlContent",
+          "rawContent",
+          "reason",
+          "recipient",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "htmlContent": {
+            "type": "string",
+            "description": "HTML notification content."
+          },
+          "lastReadAt": {
+            "type": "string",
+            "description": "Last time the recipient marked this notification as read.",
+            "format": "date-time"
+          },
+          "rawContent": {
+            "type": "string",
+            "description": "Plain text or source notification content."
+          },
+          "reason": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Reason metadata.name that generated this notification."
+          },
+          "recipient": {
+            "minLength": 1,
+            "type": "string",
+            "description": "User metadata.name that receives the notification."
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Notification title shown in the notification center."
+          },
+          "unread": {
+            "type": "boolean",
+            "description": "Whether the recipient has not read the notification yet."
+          }
+        },
+        "description": "Notification content and read state for one recipient."
+      },
+      "NotificationTemplate": {
+        "required": [
+          "apiVersion",
+          "kind",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/NotificationTemplateSpec"
+          }
+        },
+        "description": "Notification template extension that defines localized message content for matching reason types.\n\n \u003cp\u003eIt describes the notification template\u0027s name, description, and the template content.\n\n \u003cp\u003e{@link Spec#getReasonSelector Spec#getReasonSelector()} is used to select the template by reasonType and language, if multiple templates\n are matched, the best match will be selected. This is useful when you want to override the default template."
+      },
+      "NotificationTemplateList": {
+        "required": [
+          "first",
+          "hasNext",
+          "hasPrevious",
+          "items",
+          "last",
+          "page",
+          "size",
+          "total",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the first page."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether current page has next page."
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Indicates whether current page has previous page."
+          },
+          "items": {
+            "type": "array",
+            "description": "A chunk of items.",
+            "items": {
+              "$ref": "#/components/schemas/NotificationTemplate"
+            }
+          },
+          "last": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the last page."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total elements.",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Indicates total pages.",
+            "format": "int64"
+          }
+        }
+      },
+      "NotificationTemplateSpec": {
+        "type": "object",
+        "properties": {
+          "reasonSelector": {
+            "$ref": "#/components/schemas/ReasonSelector"
+          },
+          "template": {
+            "$ref": "#/components/schemas/TemplateContent"
+          }
+        },
+        "description": "Desired notification template selector and content."
+      },
+      "NotifierDescriptor": {
+        "required": [
+          "apiVersion",
+          "kind",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/NotifierDescriptorSpec"
+          }
+        },
+        "description": "Notifier descriptor extension that advertises a notification delivery implementation and its settings.\n\n \u003cp\u003eIt describes the notifier\u0027s name, description, and the extension name of the notifier to let the user know what\n the notifier is and what it can do in the UI and also let the \u003ccode\u003eNotificationCenter\u003c/code\u003e know how to load the\n notifier and prepare the notifier\u0027s settings."
+      },
+      "NotifierDescriptorList": {
+        "required": [
+          "first",
+          "hasNext",
+          "hasPrevious",
+          "items",
+          "last",
+          "page",
+          "size",
+          "total",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the first page."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether current page has next page."
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Indicates whether current page has previous page."
+          },
+          "items": {
+            "type": "array",
+            "description": "A chunk of items.",
+            "items": {
+              "$ref": "#/components/schemas/NotifierDescriptor"
+            }
+          },
+          "last": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the last page."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total elements.",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Indicates total pages.",
+            "format": "int64"
+          }
+        }
+      },
+      "NotifierDescriptorSpec": {
+        "required": [
+          "displayName",
+          "notifierExtName"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what the notifier sends."
+          },
+          "displayName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Display name shown for the notifier."
+          },
+          "notifierExtName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Extension name of the notifier implementation."
+          },
+          "receiverSettingRef": {
+            "$ref": "#/components/schemas/NotifierSettingRef"
+          },
+          "senderSettingRef": {
+            "$ref": "#/components/schemas/NotifierSettingRef"
+          }
+        },
+        "description": "Desired notifier descriptor metadata and configuration references."
+      },
+      "NotifierSettingRef": {
+        "required": [
+          "group",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "Setting form group name."
+          },
+          "name": {
+            "type": "string",
+            "description": "Setting metadata.name."
+          }
+        },
+        "description": "Reference to a notifier setting form group."
+      },
+      "PageLayout": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Human-readable diagnostic message."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Stable diagnostic reason."
+          },
+          "state": {
+            "type": "string",
+            "description": "Compatibility state of the page layout contract.",
+            "enum": [
+              "SUPPORTED",
+              "MISSING",
+              "INVALID"
+            ]
+          },
+          "template": {
+            "type": "string",
+            "description": "Contract template path relative to the theme root."
+          }
+        },
+        "description": "Page layout contract compatibility details."
+      },
       "PatSpec": {
         "required": [
           "name",
@@ -9857,45 +11684,56 @@
         "type": "object",
         "properties": {
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional human-readable description of how the token is used."
           },
           "expiresAt": {
             "type": "string",
+            "description": "Time when the token expires. A null value means the token does not expire by time.",
             "format": "date-time"
           },
           "lastUsed": {
             "type": "string",
+            "description": "Last time the token was used successfully.",
             "format": "date-time"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name chosen by the token owner."
           },
           "revoked": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the token has been manually revoked."
           },
           "revokesAt": {
             "type": "string",
+            "description": "Time when the token was revoked.",
             "format": "date-time"
           },
           "roles": {
             "type": "array",
+            "description": "Role names granted to this token.",
             "items": {
               "type": "string"
             }
           },
           "scopes": {
             "type": "array",
+            "description": "Scope strings granted to this token.",
             "items": {
               "type": "string"
             }
           },
           "tokenId": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable token identifier stored separately from the secret token value. For legacy tokens issued as JWTs, this\n is the JWT ID (jti). For opaque tokens, this is the SHA-256 hash (hex encoded) of the token secret."
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "description": "User metadata.name that owns this token."
           }
-        }
+        },
+        "description": "Desired personal access token settings and lifecycle flags."
       },
       "PersonalAccessToken": {
         "required": [
@@ -9917,7 +11755,8 @@
           "spec": {
             "$ref": "#/components/schemas/PatSpec"
           }
-        }
+        },
+        "description": "Personal access token extension used for non-interactive API authentication on behalf of a Halo user."
       },
       "PersonalAccessTokenList": {
         "required": [
@@ -9939,7 +11778,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -10002,7 +11841,8 @@
           "status": {
             "$ref": "#/components/schemas/PluginStatus"
           }
-        }
+        },
+        "description": "Plugin extension that describes an installed plugin and its runtime lifecycle state."
       },
       "PluginAuthor": {
         "required": [
@@ -10012,12 +11852,15 @@
         "properties": {
           "name": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Author display name."
           },
           "website": {
-            "type": "string"
+            "type": "string",
+            "description": "Author website URL."
           }
-        }
+        },
+        "description": "Plugin author metadata."
       },
       "PluginList": {
         "required": [
@@ -10039,7 +11882,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -10088,56 +11931,66 @@
             "$ref": "#/components/schemas/PluginAuthor"
           },
           "configMapName": {
-            "type": "string"
+            "type": "string",
+            "description": "ConfigMap metadata.name storing plugin configuration values."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable plugin description."
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown for the plugin."
           },
           "enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the plugin should be enabled."
           },
           "homepage": {
-            "type": "string"
+            "type": "string",
+            "description": "Plugin homepage URL."
           },
           "issues": {
-            "type": "string"
+            "type": "string",
+            "description": "Issue tracker URL."
           },
           "license": {
             "type": "array",
+            "description": "Licenses declared by the plugin.",
             "items": {
               "$ref": "#/components/schemas/License"
             }
           },
           "logo": {
-            "type": "string"
-          },
-          "pluginClass": {
             "type": "string",
-            "deprecated": true
+            "description": "Logo URL or attachment URI for the plugin."
           },
           "pluginDependencies": {
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "Required plugin dependencies keyed by plugin name with version constraints as values."
           },
           "repo": {
-            "type": "string"
+            "type": "string",
+            "description": "Source repository URL."
           },
           "requires": {
-            "type": "string"
+            "type": "string",
+            "description": "SemVer format."
           },
           "settingName": {
-            "type": "string"
+            "type": "string",
+            "description": "Setting metadata.name used to render the plugin configuration form."
           },
           "version": {
             "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-            "type": "string"
+            "type": "string",
+            "description": "plugin version."
           }
-        }
+        },
+        "description": "Desired plugin metadata and configuration references."
       },
       "PluginStatus": {
         "type": "object",
@@ -10149,15 +12002,18 @@
                 "type": "boolean"
               }
             },
+            "description": "Reconciliation conditions for the plugin.",
             "items": {
               "$ref": "#/components/schemas/Condition"
             }
           },
           "entry": {
-            "type": "string"
+            "type": "string",
+            "description": "JavaScript bundle entry path served for the plugin UI."
           },
           "lastProbeState": {
             "type": "string",
+            "description": "Last PF4J probe state observed for the plugin.",
             "enum": [
               "CREATED",
               "DISABLED",
@@ -10170,18 +12026,21 @@
           },
           "lastStartTime": {
             "type": "string",
+            "description": "Last time the plugin started successfully.",
             "format": "date-time"
           },
           "loadLocation": {
             "type": "string",
-            "description": "Load location of the plugin, often a path.",
+            "description": "URI location where the plugin artifact was loaded from.",
             "format": "uri"
           },
           "logo": {
-            "type": "string"
+            "type": "string",
+            "description": "Resolved logo URL or attachment URI for the plugin."
           },
           "phase": {
             "type": "string",
+            "description": "Current plugin lifecycle phase.",
             "enum": [
               "PENDING",
               "STARTING",
@@ -10196,9 +12055,11 @@
             ]
           },
           "stylesheet": {
-            "type": "string"
+            "type": "string",
+            "description": "Stylesheet bundle path served for the plugin UI."
           }
-        }
+        },
+        "description": "Observed plugin lifecycle and runtime asset state."
       },
       "Policy": {
         "required": [
@@ -10221,7 +12082,8 @@
           "spec": {
             "$ref": "#/components/schemas/PolicySpec"
           }
-        }
+        },
+        "description": "Storage policy extension that binds attachment uploads to a policy template and configuration."
       },
       "PolicyList": {
         "required": [
@@ -10243,7 +12105,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -10287,35 +12149,41 @@
         "properties": {
           "apiGroups": {
             "type": "array",
+            "description": "APIGroups is the name of the APIGroup that contains the resources. If multiple API groups are specified, any\n action requested against one of the enumerated resources in any API group will be allowed.",
             "items": {
               "type": "string"
             }
           },
           "nonResourceURLs": {
             "type": "array",
+            "description": "NonResourceURLs is a set of partial urls that a user should have access to. *s are allowed, but only as the\n full, final step in the path If an action is not a resource API request, then the URL is split on \u0027/\u0027 and is\n checked against the NonResourceURLs to look for a match. Since non-resource URLs are not namespaced, this\n field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API\n resources (such as \"pods\" or \"secrets\") or non-resource URL paths (such as \"/api\"), but not both.",
             "items": {
               "type": "string"
             }
           },
           "resourceNames": {
             "type": "array",
+            "description": "ResourceNames is an optional white list of names that the rule applies to. An empty set means that everything\n is allowed.",
             "items": {
               "type": "string"
             }
           },
           "resources": {
             "type": "array",
+            "description": "Resources is a list of resources this rule applies to. \u0027*\u0027 represents all resources in the specified\n apiGroups. \u0027*\u0026#47;foo\u0027 represents the subresource \u0027foo\u0027 for all resources in the specified apiGroups.",
             "items": {
               "type": "string"
             }
           },
           "verbs": {
             "type": "array",
+            "description": "Verbs allowed by this rule, such as get, list, create, update, patch, or delete.",
             "items": {
               "type": "string"
             }
           }
-        }
+        },
+        "description": "PolicyRule holds information that describes a policy rule, but does not contain information about whom the rule\n applies to or which namespace the rule applies to."
       },
       "PolicySpec": {
         "required": [
@@ -10326,17 +12194,18 @@
         "properties": {
           "configMapName": {
             "type": "string",
-            "description": "Reference name of ConfigMap extension"
+            "description": "ConfigMap metadata.name storing configuration values for this policy."
           },
           "displayName": {
             "type": "string",
-            "description": "Display name of policy"
+            "description": "Display name shown for the storage policy."
           },
           "templateName": {
             "type": "string",
-            "description": "Reference name of PolicyTemplate"
+            "description": "PolicyTemplate metadata.name that provides the storage implementation."
           }
-        }
+        },
+        "description": "Desired storage policy configuration."
       },
       "PolicyTemplate": {
         "required": [
@@ -10358,7 +12227,8 @@
           "spec": {
             "$ref": "#/components/schemas/PolicyTemplateSpec"
           }
-        }
+        },
+        "description": "Storage policy template extension that declares an attachment storage implementation and its settings form."
       },
       "PolicyTemplateList": {
         "required": [
@@ -10380,7 +12250,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -10426,12 +12296,15 @@
         "type": "object",
         "properties": {
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown for the storage policy template."
           },
           "settingName": {
-            "type": "string"
+            "type": "string",
+            "description": "Setting metadata.name used to render configuration fields for policies created from this template."
           }
-        }
+        },
+        "description": "Desired storage policy template metadata."
       },
       "Post": {
         "required": [
@@ -10457,7 +12330,8 @@
           "status": {
             "$ref": "#/components/schemas/PostStatus"
           }
-        }
+        },
+        "description": "Post extension that stores article metadata, publication settings, taxonomy, and derived status."
       },
       "PostList": {
         "required": [
@@ -10479,7 +12353,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -10534,32 +12408,39 @@
         "properties": {
           "allowComment": {
             "type": "boolean",
+            "description": "Whether new comments are allowed for this post.",
             "default": true
           },
           "baseSnapshot": {
-            "type": "string"
+            "type": "string",
+            "description": "Base Snapshot metadata.name used to reconstruct raw and rendered content from patches."
           },
           "categories": {
             "type": "array",
+            "description": "Category metadata.name values associated with the post.",
             "items": {
               "type": "string"
             }
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "Cover image URL or attachment URI of the post."
           },
           "deleted": {
             "type": "boolean",
+            "description": "Whether the post is logically deleted and should be treated as recycled.",
             "default": false
           },
           "excerpt": {
             "$ref": "#/components/schemas/Excerpt"
           },
           "headSnapshot": {
-            "type": "string"
+            "type": "string",
+            "description": "Snapshot metadata.name containing the latest editable draft content."
           },
           "htmlMetas": {
             "type": "array",
+            "description": "HTML meta tag attribute maps injected into the rendered post page head.",
             "items": {
               "type": "object",
               "additionalProperties": {
@@ -10568,64 +12449,73 @@
             }
           },
           "owner": {
-            "type": "string"
+            "type": "string",
+            "description": "User metadata.name of the post owner."
           },
           "pinned": {
             "type": "boolean",
+            "description": "Whether the post should be pinned ahead of normal post ordering.",
             "default": false
           },
           "priority": {
             "type": "integer",
+            "description": "Sorting priority. Higher values sort before lower values where priority ordering is applied.",
             "format": "int32",
             "default": 0
           },
           "publish": {
             "type": "boolean",
+            "description": "Desired publish state. False keeps the post as a draft or moves it back to draft.",
             "default": false
           },
           "publishTime": {
             "type": "string",
+            "description": "Time when the post was published or is scheduled to be published.",
             "format": "date-time"
           },
           "releaseSnapshot": {
-            "type": "string"
+            "type": "string",
+            "description": "Snapshot metadata.name selected as the published content version."
           },
           "slug": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "URL slug used to build the post permalink."
           },
           "tags": {
             "type": "array",
+            "description": "Tag metadata.name values associated with the post.",
             "items": {
               "type": "string"
             }
           },
           "template": {
-            "type": "string"
+            "type": "string",
+            "description": "Theme template used to render this post."
           },
           "title": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Display title of the post."
           },
           "visible": {
             "type": "string",
+            "description": "Visibility used by theme-side and public REST queries; anonymous clients only receive PUBLIC posts.",
             "enum": [
               "PUBLIC",
               "INTERNAL",
               "PRIVATE"
-            ],
-            "default": "PUBLIC"
+            ]
           }
-        }
+        },
+        "description": "Desired post content, publication, taxonomy, and rendering configuration."
       },
       "PostStatus": {
-        "required": [
-          "phase"
-        ],
         "type": "object",
         "properties": {
           "commentsCount": {
             "type": "integer",
+            "description": "Total number of comments associated with the content item.",
             "format": "int32"
           },
           "conditions": {
@@ -10635,43 +12525,362 @@
                 "type": "boolean"
               }
             },
+            "description": "Reconciliation conditions reported by controllers for this content item.",
             "items": {
               "$ref": "#/components/schemas/Condition"
             }
           },
           "contributors": {
             "type": "array",
+            "description": "User metadata.name values that contributed to the content snapshots.",
             "items": {
               "type": "string"
             }
           },
           "excerpt": {
-            "type": "string"
+            "type": "string",
+            "description": "Excerpt text resolved from the content excerpt configuration."
           },
           "hideFromList": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether any associated category hides this content item from theme-side lists."
           },
           "inProgress": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the latest draft snapshot differs from the released snapshot."
           },
           "lastModifyTime": {
             "type": "string",
+            "description": "Last modification time of the released snapshot.",
             "format": "date-time"
           },
           "observedVersion": {
             "type": "integer",
+            "description": "Metadata version observed by the last successful reconciliation.",
             "format": "int64"
           },
           "permalink": {
-            "type": "string"
+            "type": "string",
+            "description": "Absolute permalink calculated from the content permalink policy."
           },
           "phase": {
+            "type": "string",
+            "description": "Current publishing phase, such as DRAFT, PENDING_APPROVAL, PUBLISHED, or FAILED."
+          }
+        },
+        "description": "Observed post state derived by content reconcilers."
+      },
+      "Reason": {
+        "required": [
+          "apiVersion",
+          "kind",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
             "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/ReasonSpec"
+          }
+        },
+        "description": "Reason extension that represents one notification event instance of a {@link ReasonType ReasonType}.\n\n \u003cp\u003eIt can be understood as an event that triggers a notification."
+      },
+      "ReasonAttributes": {
+        "type": "object",
+        "properties": {
+          "empty": {
+            "type": "boolean"
+          }
+        },
+        "description": "{@link ReasonAttributes ReasonAttributes} is a map that stores the attributes of the reason."
+      },
+      "ReasonList": {
+        "required": [
+          "first",
+          "hasNext",
+          "hasPrevious",
+          "items",
+          "last",
+          "page",
+          "size",
+          "total",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the first page."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether current page has next page."
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Indicates whether current page has previous page."
+          },
+          "items": {
+            "type": "array",
+            "description": "A chunk of items.",
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            }
+          },
+          "last": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the last page."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total elements.",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Indicates total pages.",
+            "format": "int64"
           }
         }
       },
+      "ReasonProperty": {
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the attribute."
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Attribute name."
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether the attribute may be absent from a reason.",
+            "default": false
+          },
+          "type": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Attribute value type, such as string, number, boolean, or object."
+          }
+        },
+        "description": "Attribute definition for reasons of a reason type."
+      },
+      "ReasonSelector": {
+        "required": [
+          "language",
+          "reasonType"
+        ],
+        "type": "object",
+        "properties": {
+          "language": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Language tag this template applies to, or default for the fallback template.",
+            "default": "default"
+          },
+          "reasonType": {
+            "minLength": 1,
+            "type": "string",
+            "description": "ReasonType metadata.name this template applies to."
+          }
+        },
+        "description": "Selector used to match a notification template to a reason type and language."
+      },
+      "ReasonSpec": {
+        "required": [
+          "author",
+          "reasonType",
+          "subject"
+        ],
+        "type": "object",
+        "properties": {
+          "attributes": {
+            "$ref": "#/components/schemas/ReasonAttributes"
+          },
+          "author": {
+            "type": "string",
+            "description": "User metadata.name or system actor that created the reason."
+          },
+          "reasonType": {
+            "type": "string",
+            "description": "ReasonType metadata.name that defines this reason."
+          },
+          "subject": {
+            "$ref": "#/components/schemas/ReasonSubject"
+          }
+        },
+        "description": "Notification reason data used to render and dispatch notifications."
+      },
+      "ReasonSubject": {
+        "required": [
+          "apiVersion",
+          "kind",
+          "name",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string",
+            "description": "Subject API version."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Subject kind."
+          },
+          "name": {
+            "type": "string",
+            "description": "Subject metadata.name."
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable subject title shown in notifications."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL that opens the subject."
+          }
+        },
+        "description": "Resource subject associated with a notification reason."
+      },
+      "ReasonType": {
+        "required": [
+          "apiVersion",
+          "kind",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/ReasonTypeSpec"
+          }
+        },
+        "description": "Reason type extension that defines the schema and display metadata for notification reasons.\n\n \u003cp\u003eOne {@link ReasonType ReasonType} can have multiple {@link Reason Reason}s to notify."
+      },
+      "ReasonTypeList": {
+        "required": [
+          "first",
+          "hasNext",
+          "hasPrevious",
+          "items",
+          "last",
+          "page",
+          "size",
+          "total",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the first page."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether current page has next page."
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Indicates whether current page has previous page."
+          },
+          "items": {
+            "type": "array",
+            "description": "A chunk of items.",
+            "items": {
+              "$ref": "#/components/schemas/ReasonType"
+            }
+          },
+          "last": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the last page."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total elements.",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Indicates total pages.",
+            "format": "int64"
+          }
+        }
+      },
+      "ReasonTypeSpec": {
+        "required": [
+          "description",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Human-readable description of when this reason type is triggered."
+          },
+          "displayName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Display name shown for this reason type."
+          },
+          "properties": {
+            "type": "array",
+            "description": "Attribute definitions available on reasons of this type.",
+            "items": {
+              "$ref": "#/components/schemas/ReasonProperty"
+            }
+          }
+        },
+        "description": "Desired reason type metadata and properties available to templates."
+      },
       "Ref": {
         "required": [
+          "group",
+          "kind",
           "name"
         ],
         "type": "object",
@@ -10716,7 +12925,8 @@
           "spec": {
             "$ref": "#/components/schemas/RememberMeTokenSpec"
           }
-        }
+        },
+        "description": "Persistent remember-me token used to keep a user\u0027s browser session signed in across restarts."
       },
       "RememberMeTokenList": {
         "required": [
@@ -10738,7 +12948,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -10787,21 +12997,30 @@
         "properties": {
           "lastUsed": {
             "type": "string",
+            "description": "Last time this remember-me token was used successfully.",
             "format": "date-time"
+          },
+          "previousTokenValue": {
+            "type": "string",
+            "description": "The previous token value, stored when the token is rotated. Used to accept recently-rotated tokens within a\n grace period to prevent false-positive cookie theft detection during concurrent requests."
           },
           "series": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Browser series identifier used by Spring Security remember-me authentication."
           },
           "tokenValue": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Current remember-me token value expected from the browser cookie."
           },
           "username": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "User metadata.name that owns this remember-me token."
           }
-        }
+        },
+        "description": "Persistent remember-me token values for a user and browser series."
       },
       "RemoveOperation": {
         "required": [
@@ -10874,7 +13093,8 @@
           "status": {
             "$ref": "#/components/schemas/ReplyStatus"
           }
-        }
+        },
+        "description": "Reply extension that belongs to a top-level {@link Comment Comment}."
       },
       "ReplyList": {
         "required": [
@@ -10896,7 +13116,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -10951,67 +13171,83 @@
         "properties": {
           "allowNotification": {
             "type": "boolean",
+            "description": "Whether notification subscriptions should be created for this comment or reply.",
             "default": true
           },
           "approved": {
             "type": "boolean",
+            "description": "Whether the comment has passed moderation and may be visible.",
             "default": false
           },
           "approvedTime": {
             "type": "string",
+            "description": "Time when the comment was approved.",
             "format": "date-time"
           },
           "commentName": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Parent Comment metadata.name."
           },
           "content": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Rendered HTML content displayed to REST and theme consumers."
           },
           "creationTime": {
             "type": "string",
+            "description": "Creation time supplied by the caller. If absent, metadata.creationTimestamp is used.",
             "format": "date-time"
           },
           "hidden": {
             "type": "boolean",
+            "description": "Whether the comment should be hidden from public REST and theme output.",
             "default": false
           },
           "ipAddress": {
-            "type": "string"
+            "type": "string",
+            "description": "IP address recorded when the comment was submitted."
           },
           "owner": {
             "$ref": "#/components/schemas/CommentOwner"
           },
           "priority": {
             "type": "integer",
+            "description": "Sorting priority. Higher values sort before lower values where priority ordering is applied.",
             "format": "int32",
             "default": 0
           },
           "quoteReply": {
-            "type": "string"
+            "type": "string",
+            "description": "Quoted Reply metadata.name when this reply responds to another reply."
           },
           "raw": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Raw comment body submitted by the owner before HTML sanitization and rendering."
           },
           "top": {
             "type": "boolean",
+            "description": "Whether the comment is pinned above normal comment ordering.",
             "default": false
           },
           "userAgent": {
-            "type": "string"
+            "type": "string",
+            "description": "Browser user agent recorded when the comment was submitted."
           }
-        }
+        },
+        "description": "Desired state of a reply."
       },
       "ReplyStatus": {
         "type": "object",
         "properties": {
           "observedVersion": {
             "type": "integer",
+            "description": "Metadata version observed by the last successful reconciliation.",
             "format": "int64"
           }
-        }
+        },
+        "description": "Observed state of a reply."
       },
       "ReverseProxy": {
         "required": [
@@ -11032,11 +13268,13 @@
           },
           "rules": {
             "type": "array",
+            "description": "Path mapping rules served by this reverse proxy resource.",
             "items": {
               "$ref": "#/components/schemas/ReverseProxyRule"
             }
           }
-        }
+        },
+        "description": "The reverse proxy custom resource is used to configure a path to proxy it to a directory or file.\n\n \u003cp\u003eHTTP proxy may be added in the future."
       },
       "ReverseProxyList": {
         "required": [
@@ -11058,7 +13296,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -11106,7 +13344,8 @@
           "path": {
             "type": "string"
           }
-        }
+        },
+        "description": "A path mapping from a public request path to a file provider."
       },
       "Role": {
         "required": [
@@ -11128,11 +13367,13 @@
           },
           "rules": {
             "type": "array",
+            "description": "Policy rules granted by this role.",
             "items": {
               "$ref": "#/components/schemas/PolicyRule"
             }
           }
-        }
+        },
+        "description": "Role extension that defines RBAC policy rules for users and other subjects."
       },
       "RoleBinding": {
         "required": [
@@ -11156,11 +13397,13 @@
           },
           "subjects": {
             "type": "array",
+            "description": "Subjects that receive the permissions from roleRef.",
             "items": {
               "$ref": "#/components/schemas/Subject"
             }
           }
-        }
+        },
+        "description": "RoleBinding extension that grants a Role to one or more subjects."
       },
       "RoleBindingList": {
         "required": [
@@ -11182,7 +13425,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -11241,7 +13484,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -11284,123 +13527,19 @@
         "type": "object",
         "properties": {
           "apiGroup": {
-            "type": "string"
+            "type": "string",
+            "description": "API group of the role resource being referenced."
           },
           "kind": {
-            "type": "string"
+            "type": "string",
+            "description": "Kind of the role resource being referenced."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Metadata name of the role resource being referenced."
           }
-        }
-      },
-      "SearchEngine": {
-        "required": [
-          "apiVersion",
-          "kind",
-          "metadata",
-          "spec"
-        ],
-        "type": "object",
-        "properties": {
-          "apiVersion": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/Metadata"
-          },
-          "spec": {
-            "$ref": "#/components/schemas/SearchEngineSpec"
-          }
-        }
-      },
-      "SearchEngineList": {
-        "required": [
-          "first",
-          "hasNext",
-          "hasPrevious",
-          "items",
-          "last",
-          "page",
-          "size",
-          "total",
-          "totalPages"
-        ],
-        "type": "object",
-        "properties": {
-          "first": {
-            "type": "boolean",
-            "description": "Indicates whether current page is the first page."
-          },
-          "hasNext": {
-            "type": "boolean",
-            "description": "Indicates whether current page has previous page."
-          },
-          "hasPrevious": {
-            "type": "boolean",
-            "description": "Indicates whether current page has previous page."
-          },
-          "items": {
-            "type": "array",
-            "description": "A chunk of items.",
-            "items": {
-              "$ref": "#/components/schemas/SearchEngine"
-            }
-          },
-          "last": {
-            "type": "boolean",
-            "description": "Indicates whether current page is the last page."
-          },
-          "page": {
-            "type": "integer",
-            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
-            "format": "int32"
-          },
-          "size": {
-            "type": "integer",
-            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
-            "format": "int32"
-          },
-          "total": {
-            "type": "integer",
-            "description": "Total elements.",
-            "format": "int64"
-          },
-          "totalPages": {
-            "type": "integer",
-            "description": "Indicates total pages.",
-            "format": "int64"
-          }
-        }
-      },
-      "SearchEngineSpec": {
-        "required": [
-          "displayName"
-        ],
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "logo": {
-            "type": "string"
-          },
-          "postSearchImpl": {
-            "type": "string"
-          },
-          "settingRef": {
-            "$ref": "#/components/schemas/Ref"
-          },
-          "website": {
-            "type": "string"
-          }
-        }
+        },
+        "description": "RoleRef contains information that points to the role being used."
       },
       "Secret": {
         "required": [
@@ -11416,12 +13555,10 @@
           "data": {
             "type": "object",
             "additionalProperties": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "byte"
-              }
-            }
+              "type": "string",
+              "format": "byte"
+            },
+            "description": "The total bytes of the values in the Data field must be less than {@link run.halo.app.extension.Secret#MAX_SECRET_SIZE #MAX_SECRET_SIZE} bytes.\n\n \u003cp\u003e\u003ccode\u003edata\u003c/code\u003e contains the secret data. Each key must consist of alphanumeric characters, \u0027-\u0027, \u0027_\u0027 or \u0027.\u0027. The\n serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string)\n data value here. Described in \u003ca href\u003d\"https://tools.ietf.org/html/rfc4648#section-4\"\u003erfc4648#section-4\u003c/a\u003e"
           },
           "kind": {
             "type": "string"
@@ -11433,12 +13570,15 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "\u003ccode\u003estringData\u003c/code\u003e allows specifying non-binary secret data in string form. It is provided as a write-only input\n field for convenience. All keys and values are merged into the data field on write, overwriting any existing\n values. The stringData field is never output when reading from the API."
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "Used to facilitate programmatic handling of secret data. More info: \u003ca\n href\u003d\"https://kubernetes.io/docs/concepts/configuration/secret/#secret-types\"\u003esecret-types\u003c/a\u003e"
           }
-        }
+        },
+        "description": "Secret is a small piece of sensitive data which should be kept secret, such as a password, a token, or a key."
       },
       "SecretList": {
         "required": [
@@ -11460,7 +13600,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -11520,7 +13660,8 @@
           "spec": {
             "$ref": "#/components/schemas/SettingSpec"
           }
-        }
+        },
+        "description": "Setting extension that describes one or more configuration forms and their schema."
       },
       "SettingForm": {
         "minLength": 1,
@@ -11532,17 +13673,21 @@
         "properties": {
           "formSchema": {
             "type": "array",
+            "description": "FormKit-compatible schema used to render the form fields.",
             "items": {
               "type": "object"
             }
           },
           "group": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable form group name used to store submitted values."
           },
           "label": {
-            "type": "string"
+            "type": "string",
+            "description": "Display label shown for this form group."
           }
-        }
+        },
+        "description": "A single form group in a setting definition."
       },
       "SettingList": {
         "required": [
@@ -11564,7 +13709,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -11612,13 +13757,16 @@
         "properties": {
           "group": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Setting form group name."
           },
           "name": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Setting metadata.name."
           }
-        }
+        },
+        "description": "Reference to a setting definition used by this provider."
       },
       "SettingSpec": {
         "required": [
@@ -11629,11 +13777,13 @@
           "forms": {
             "minLength": 1,
             "type": "array",
+            "description": "Form groups rendered for this setting definition.",
             "items": {
               "$ref": "#/components/schemas/SettingForm"
             }
           }
-        }
+        },
+        "description": "Collection of form groups that make up this setting definition."
       },
       "SinglePage": {
         "required": [
@@ -11659,7 +13809,8 @@
           "status": {
             "$ref": "#/components/schemas/SinglePageStatus"
           }
-        }
+        },
+        "description": "Single page extension that stores standalone page metadata, publication settings, and derived status."
       },
       "SinglePageList": {
         "required": [
@@ -11681,7 +13832,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -11736,26 +13887,32 @@
         "properties": {
           "allowComment": {
             "type": "boolean",
+            "description": "Whether new comments are allowed for this single page.",
             "default": true
           },
           "baseSnapshot": {
-            "type": "string"
+            "type": "string",
+            "description": "Base Snapshot metadata.name used to reconstruct raw and rendered content from patches."
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "Cover image URL or attachment URI of the single page."
           },
           "deleted": {
             "type": "boolean",
+            "description": "Whether the single page is logically deleted and should be treated as recycled.",
             "default": false
           },
           "excerpt": {
             "$ref": "#/components/schemas/Excerpt"
           },
           "headSnapshot": {
-            "type": "string"
+            "type": "string",
+            "description": "Snapshot metadata.name containing the latest editable draft content."
           },
           "htmlMetas": {
             "type": "array",
+            "description": "HTML meta tag attribute maps injected into the rendered single page head.",
             "items": {
               "type": "object",
               "additionalProperties": {
@@ -11764,58 +13921,66 @@
             }
           },
           "owner": {
-            "type": "string"
+            "type": "string",
+            "description": "User metadata.name of the single page owner."
           },
           "pinned": {
             "type": "boolean",
+            "description": "Whether the single page should be pinned ahead of normal page ordering.",
             "default": false
           },
           "priority": {
             "type": "integer",
+            "description": "Sorting priority. Higher values sort before lower values where priority ordering is applied.",
             "format": "int32",
             "default": 0
           },
           "publish": {
             "type": "boolean",
+            "description": "Desired publish state. False keeps the single page as a draft or moves it back to draft.",
             "default": false
           },
           "publishTime": {
             "type": "string",
+            "description": "Time when the single page was published or is scheduled to be published.",
             "format": "date-time"
           },
           "releaseSnapshot": {
-            "type": "string"
+            "type": "string",
+            "description": "Snapshot metadata.name selected as the published content version."
           },
           "slug": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "URL slug used to build the single page permalink."
           },
           "template": {
-            "type": "string"
+            "type": "string",
+            "description": "Theme template used to render this single page."
           },
           "title": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Display title of the single page."
           },
           "visible": {
             "type": "string",
+            "description": "Visibility used by theme-side and public REST queries; anonymous clients only receive PUBLIC single pages.",
             "enum": [
               "PUBLIC",
               "INTERNAL",
               "PRIVATE"
-            ],
-            "default": "PUBLIC"
+            ]
           }
-        }
+        },
+        "description": "Desired single page content, publication, and rendering configuration."
       },
       "SinglePageStatus": {
-        "required": [
-          "phase"
-        ],
         "type": "object",
         "properties": {
           "commentsCount": {
             "type": "integer",
+            "description": "Total number of comments associated with the content item.",
             "format": "int32"
           },
           "conditions": {
@@ -11825,40 +13990,50 @@
                 "type": "boolean"
               }
             },
+            "description": "Reconciliation conditions reported by controllers for this content item.",
             "items": {
               "$ref": "#/components/schemas/Condition"
             }
           },
           "contributors": {
             "type": "array",
+            "description": "User metadata.name values that contributed to the content snapshots.",
             "items": {
               "type": "string"
             }
           },
           "excerpt": {
-            "type": "string"
+            "type": "string",
+            "description": "Excerpt text resolved from the content excerpt configuration."
           },
           "hideFromList": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether any associated category hides this content item from theme-side lists."
           },
           "inProgress": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the latest draft snapshot differs from the released snapshot."
           },
           "lastModifyTime": {
             "type": "string",
+            "description": "Last modification time of the released snapshot.",
             "format": "date-time"
           },
           "observedVersion": {
             "type": "integer",
+            "description": "Metadata version observed by the last successful reconciliation.",
             "format": "int64"
           },
           "permalink": {
-            "type": "string"
+            "type": "string",
+            "description": "Absolute permalink calculated from the content permalink policy."
           },
           "phase": {
-            "type": "string"
+            "type": "string",
+            "description": "Current publishing phase, such as DRAFT, PENDING_APPROVAL, PUBLISHED, or FAILED."
           }
-        }
+        },
+        "description": "Observed single page state derived by content reconcilers."
       },
       "SnapShotSpec": {
         "required": [
@@ -11869,38 +14044,46 @@
         "type": "object",
         "properties": {
           "contentPatch": {
-            "type": "string"
+            "type": "string",
+            "description": "Full rendered content for a base snapshot, or a JSON-encoded line diff from the base rendered content."
           },
           "contributors": {
             "uniqueItems": true,
             "type": "array",
+            "description": "User metadata.name values that contributed to this snapshot.",
             "items": {
               "type": "string"
             }
           },
           "lastModifyTime": {
             "type": "string",
+            "description": "Last time the snapshot content was modified.",
             "format": "date-time"
           },
           "owner": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "User metadata.name of the snapshot owner."
           },
           "parentSnapshotName": {
-            "type": "string"
+            "type": "string",
+            "description": "Parent Snapshot metadata.name in the snapshot revision chain."
           },
           "rawPatch": {
-            "type": "string"
+            "type": "string",
+            "description": "Full raw source content for a base snapshot, or a JSON-encoded line diff from the base raw content."
           },
           "rawType": {
             "maxLength": 50,
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Source format of the raw content, such as markdown, html, json, asciidoc, or latex."
           },
           "subjectRef": {
             "$ref": "#/components/schemas/Ref"
           }
-        }
+        },
+        "description": "Content snapshot payload and metadata."
       },
       "Snapshot": {
         "required": [
@@ -11923,7 +14106,8 @@
           "spec": {
             "$ref": "#/components/schemas/SnapShotSpec"
           }
-        }
+        },
+        "description": "Snapshot extension that stores a version of post or single page content."
       },
       "SnapshotList": {
         "required": [
@@ -11945,7 +14129,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -11988,15 +14172,140 @@
         "type": "object",
         "properties": {
           "apiGroup": {
+            "type": "string",
+            "description": "APIGroup holds the API group of the referenced subject. Defaults to \"\" for ServiceAccount subjects. Defaults\n to \"rbac.authorization.halo.run\" for User and Group subjects."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Kind of object being referenced. Values defined by this API group are \"User\", \"Group\", and \"ServiceAccount\".\n If the Authorizer does not recognize the kind value, the Authorizer should report an error."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the object being referenced."
+          }
+        },
+        "description": "Subject that receives permissions from a RoleBinding."
+      },
+      "Subscription": {
+        "required": [
+          "apiVersion",
+          "kind",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "apiVersion": {
             "type": "string"
           },
           "kind": {
             "type": "string"
           },
-          "name": {
-            "type": "string"
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/SubscriptionSpec"
+          }
+        },
+        "description": "Subscription extension that records which subscriber should be notified when a matching reason is triggered.\n\n \u003cp\u003eIt holds a {@link Subscriber Subscriber} to the user to be notified, a {@link InterestReason InterestReason} to subscribe to."
+      },
+      "SubscriptionList": {
+        "required": [
+          "first",
+          "hasNext",
+          "hasPrevious",
+          "items",
+          "last",
+          "page",
+          "size",
+          "total",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the first page."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether current page has next page."
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Indicates whether current page has previous page."
+          },
+          "items": {
+            "type": "array",
+            "description": "A chunk of items.",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            }
+          },
+          "last": {
+            "type": "boolean",
+            "description": "Indicates whether current page is the last page."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total elements.",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Indicates total pages.",
+            "format": "int64"
           }
         }
+      },
+      "SubscriptionSpec": {
+        "required": [
+          "reason",
+          "subscriber",
+          "unsubscribeToken"
+        ],
+        "type": "object",
+        "properties": {
+          "disabled": {
+            "type": "boolean",
+            "description": "Whether the subscription has been disabled, usually after the subscriber unsubscribes."
+          },
+          "reason": {
+            "$ref": "#/components/schemas/InterestReason"
+          },
+          "subscriber": {
+            "$ref": "#/components/schemas/SubscriptionSubscriber"
+          },
+          "unsubscribeToken": {
+            "type": "string",
+            "description": "Token used to unsubscribe without authenticating as the subscriber."
+          }
+        },
+        "description": "Desired notification subscription settings."
+      },
+      "SubscriptionSubscriber": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "User metadata.name of the subscriber."
+          }
+        },
+        "description": "Subscriber that receives notifications."
       },
       "Tag": {
         "required": [
@@ -12022,7 +14331,8 @@
           "status": {
             "$ref": "#/components/schemas/TagStatus"
           }
-        }
+        },
+        "description": "Tag extension for grouping posts by free-form labels."
       },
       "TagList": {
         "required": [
@@ -12044,7 +14354,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -12092,40 +14402,76 @@
         "properties": {
           "color": {
             "pattern": "^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$",
-            "type": "string"
+            "type": "string",
+            "description": "Display color of the tag in 3- or 6-digit hex notation, such as #fff or #ffffff."
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "Cover image URL or attachment URI of the tag."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the tag."
           },
           "displayName": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Display name of the tag."
           },
           "slug": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "URL slug used to build the tag permalink."
           }
-        }
+        },
+        "description": "Desired tag display and rendering configuration."
       },
       "TagStatus": {
         "type": "object",
         "properties": {
           "observedVersion": {
             "type": "integer",
+            "description": "Metadata version observed by the last successful reconciliation.",
             "format": "int64"
           },
           "permalink": {
-            "type": "string"
+            "type": "string",
+            "description": "Absolute permalink calculated from the tag permalink policy."
           },
           "postCount": {
             "type": "integer",
+            "description": "Total number of posts associated with the tag.",
             "format": "int32"
           },
           "visiblePostCount": {
             "type": "integer",
+            "description": "Total number of published and public posts associated with the tag.",
             "format": "int32"
           }
-        }
+        },
+        "description": "Observed tag state derived by content reconcilers."
+      },
+      "TemplateContent": {
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "htmlBody": {
+            "type": "string",
+            "description": "HTML body rendered for notification channels that support HTML."
+          },
+          "rawBody": {
+            "type": "string",
+            "description": "Plain text or source body rendered for notification channels that do not use HTML."
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Rendered notification title."
+          }
+        },
+        "description": "Notification template content."
       },
       "TemplateDescriptor": {
         "required": [
@@ -12135,20 +14481,25 @@
         "type": "object",
         "properties": {
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable description of when to use this template."
           },
           "file": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Template file path relative to the theme templates directory."
           },
           "name": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Template display name shown to users."
           },
           "screenshot": {
-            "type": "string"
+            "type": "string",
+            "description": "Screenshot URL or attachment URI for previewing the template."
           }
-        }
+        },
+        "description": "Type used to describe custom template page."
       },
       "TestOperation": {
         "required": [
@@ -12199,7 +14550,8 @@
           "status": {
             "$ref": "#/components/schemas/ThemeStatus"
           }
-        }
+        },
+        "description": "Theme extension that describes an installable frontend theme and its runtime state."
       },
       "ThemeList": {
         "required": [
@@ -12221,7 +14573,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -12263,8 +14615,7 @@
       "ThemeSpec": {
         "required": [
           "author",
-          "displayName",
-          "version"
+          "displayName"
         ],
         "type": "object",
         "properties": {
@@ -12272,55 +14623,58 @@
             "$ref": "#/components/schemas/Author"
           },
           "configMapName": {
-            "type": "string"
+            "type": "string",
+            "description": "ConfigMap metadata.name storing the theme configuration values."
           },
           "customTemplates": {
             "$ref": "#/components/schemas/CustomTemplates"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable theme description."
           },
           "displayName": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown for the theme."
           },
           "homepage": {
-            "type": "string"
+            "type": "string",
+            "description": "Theme homepage URL."
           },
           "issues": {
-            "type": "string"
+            "type": "string",
+            "description": "Issue tracker URL."
           },
           "license": {
             "type": "array",
+            "description": "Licenses declared by the theme.",
             "items": {
               "$ref": "#/components/schemas/License"
             }
           },
           "logo": {
-            "type": "string"
+            "type": "string",
+            "description": "Logo URL or attachment URI for the theme."
           },
           "repo": {
-            "type": "string"
-          },
-          "require": {
             "type": "string",
-            "description": "Deprecated, use `requires` instead.",
-            "deprecated": true
+            "description": "Source repository URL."
           },
           "requires": {
-            "type": "string"
+            "type": "string",
+            "description": "Required Halo version range. The wildcard value means any Halo version."
           },
           "settingName": {
-            "type": "string"
+            "type": "string",
+            "description": "Setting metadata.name used to render the theme configuration form."
           },
           "version": {
-            "type": "string"
-          },
-          "website": {
             "type": "string",
-            "deprecated": true
+            "description": "Theme version. The wildcard value means any version."
           }
-        }
+        },
+        "description": "Desired theme metadata and configuration references."
       },
       "ThemeStatus": {
         "type": "object",
@@ -12332,22 +14686,45 @@
                 "type": "boolean"
               }
             },
+            "description": "Reconciliation conditions for the theme.",
             "items": {
               "$ref": "#/components/schemas/Condition"
             }
           },
+          "entry": {
+            "type": "string",
+            "description": "Resolved Console/User Center UI JavaScript entry URL served from the theme root."
+          },
+          "inDevelopment": {
+            "type": "boolean",
+            "description": "Whether the theme appears to be a local development workspace."
+          },
           "location": {
-            "type": "string"
+            "type": "string",
+            "description": "Local filesystem location where the theme is loaded from."
+          },
+          "pageLayout": {
+            "$ref": "#/components/schemas/PageLayout"
           },
           "phase": {
             "type": "string",
+            "description": "Current theme lifecycle phase.",
             "enum": [
               "READY",
               "FAILED",
               "UNKNOWN"
             ]
+          },
+          "screenshot": {
+            "type": "string",
+            "description": "Resolved preview screenshot URL served from the theme root."
+          },
+          "stylesheet": {
+            "type": "string",
+            "description": "Resolved Console/User Center UI stylesheet URL served from the theme root."
           }
-        }
+        },
+        "description": "Observed theme lifecycle and installation state."
       },
       "User": {
         "required": [
@@ -12373,7 +14750,8 @@
           "status": {
             "$ref": "#/components/schemas/UserStatus"
           }
-        }
+        },
+        "description": "User extension that stores profile, authentication, and account state for a Halo user."
       },
       "UserConnection": {
         "required": [
@@ -12396,7 +14774,8 @@
           "spec": {
             "$ref": "#/components/schemas/UserConnectionSpec"
           }
-        }
+        },
+        "description": "User connection extension that links a Halo user to an external OAuth2 account."
       },
       "UserConnectionList": {
         "required": [
@@ -12418,7 +14797,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -12459,47 +14838,31 @@
       },
       "UserConnectionSpec": {
         "required": [
-          "accessToken",
-          "displayName",
           "providerUserId",
           "registrationId",
           "username"
         ],
         "type": "object",
         "properties": {
-          "accessToken": {
-            "type": "string"
-          },
-          "avatarUrl": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "profileUrl": {
-            "type": "string"
-          },
           "providerUserId": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
+            "type": "string",
+            "description": "The unique identifier for the user\u0027s connection to the OAuth provider. for example, the user\u0027s GitHub id."
           },
           "registrationId": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of the OAuth provider (e.g. Google, Facebook, Twitter)."
           },
           "updatedAt": {
             "type": "string",
+            "description": "The time when the user connection was last updated.",
             "format": "date-time"
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "description": "The {@link Metadata#getName Metadata#getName()} of the user associated with the OAuth connection."
           }
-        }
+        },
+        "description": "External OAuth2 account binding for a Halo user."
       },
       "UserList": {
         "required": [
@@ -12521,7 +14884,7 @@
           },
           "hasNext": {
             "type": "boolean",
-            "description": "Indicates whether current page has previous page."
+            "description": "Indicates whether current page has next page."
           },
           "hasPrevious": {
             "type": "boolean",
@@ -12562,127 +14925,72 @@
       },
       "UserSpec": {
         "required": [
-          "displayName",
-          "email"
+          "displayName"
         ],
         "type": "object",
         "properties": {
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "Avatar URL or attachment URI for the user."
           },
           "bio": {
-            "type": "string"
+            "type": "string",
+            "description": "User biography shown on profile surfaces."
           },
           "disabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the user account is disabled."
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown for the user."
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "description": "Email address used for sign-in and notifications."
           },
           "emailVerified": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the email address has been verified."
           },
           "loginHistoryLimit": {
             "type": "integer",
+            "description": "Maximum number of login history entries retained for this user.",
             "format": "int32"
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "description": "Password hash or encoded password value."
           },
           "phone": {
-            "type": "string"
+            "type": "string",
+            "description": "Phone number associated with the user."
           },
           "registeredAt": {
             "type": "string",
+            "description": "Time when the user registered.",
             "format": "date-time"
           },
           "totpEncryptedSecret": {
-            "type": "string"
+            "type": "string",
+            "description": "Encrypted TOTP secret used for two-factor authentication."
           },
           "twoFactorAuthEnabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether two-factor authentication is enabled for this user."
           }
-        }
+        },
+        "description": "Desired user profile and authentication settings."
       },
       "UserStatus": {
         "type": "object",
         "properties": {
-          "lastLoginAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "loginHistories": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LoginHistory"
-            }
-          },
           "permalink": {
-            "type": "string"
+            "type": "string",
+            "description": "Public permalink of the user\u0027s profile or author page."
           }
-        }
-      },
-      "v1alpha1List": {
-        "required": [
-          "first",
-          "hasNext",
-          "hasPrevious",
-          "items",
-          "last",
-          "page",
-          "size",
-          "total",
-          "totalPages"
-        ],
-        "type": "object",
-        "properties": {
-          "first": {
-            "type": "boolean",
-            "description": "Indicates whether current page is the first page."
-          },
-          "hasNext": {
-            "type": "boolean",
-            "description": "Indicates whether current page has previous page."
-          },
-          "hasPrevious": {
-            "type": "boolean",
-            "description": "Indicates whether current page has previous page."
-          },
-          "items": {
-            "type": "array",
-            "description": "A chunk of items.",
-            "items": {
-              "$ref": "#/components/schemas/Device"
-            }
-          },
-          "last": {
-            "type": "boolean",
-            "description": "Indicates whether current page is the last page."
-          },
-          "page": {
-            "type": "integer",
-            "description": "Page number, starts from 1. If not set or equal to 0, it means no pagination.",
-            "format": "int32"
-          },
-          "size": {
-            "type": "integer",
-            "description": "Size of each page. If not set or equal to 0, it means no pagination.",
-            "format": "int32"
-          },
-          "total": {
-            "type": "integer",
-            "description": "Total elements.",
-            "format": "int64"
-          },
-          "totalPages": {
-            "type": "integer",
-            "description": "Indicates total pages.",
-            "format": "int64"
-          }
-        }
+        },
+        "description": "Observed user state derived by the application."
       }
     },
     "securitySchemes": {

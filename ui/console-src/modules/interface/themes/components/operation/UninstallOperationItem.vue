@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { invalidateThemeQueries } from "@console/composables/use-activated-theme";
 import type { Theme } from "@halo-dev/api-client";
 import { coreApiClient } from "@halo-dev/api-client";
 import { Dialog, Toast, VDropdown, VDropdownItem } from "@halo-dev/components";
@@ -15,54 +16,95 @@ const props = withDefaults(
   {}
 );
 
-const handleUninstall = async (deleteExtensions?: boolean) => {
+const deleteThemeExtensions = async () => {
+  const { settingName, configMapName } = props.theme.spec;
+
+  if (settingName) {
+    await coreApiClient.setting.deleteSetting(
+      {
+        name: settingName,
+      },
+      {
+        mute: true,
+      }
+    );
+  }
+
+  if (configMapName) {
+    await coreApiClient.configMap.deleteConfigMap(
+      {
+        name: configMapName,
+      },
+      {
+        mute: true,
+      }
+    );
+  }
+};
+
+const uninstallTheme = async (deleteExtensions?: boolean) => {
+  try {
+    await coreApiClient.theme.theme.deleteTheme(
+      {
+        name: props.theme.metadata.name,
+      },
+      {
+        mute: true,
+      }
+    );
+
+    if (deleteExtensions) {
+      await deleteThemeExtensions();
+    }
+
+    Toast.success(t("core.common.toast.uninstall_success"));
+  } finally {
+    void invalidateThemeQueries(queryClient);
+  }
+};
+
+const confirmDevelopmentThemeUninstall = (deleteExtensions?: boolean) => {
   Dialog.warning({
-    title: `${
-      deleteExtensions
-        ? t("core.theme.operations.uninstall_and_delete_config.title")
-        : t("core.theme.operations.uninstall.title")
-    }`,
+    title: t("core.theme.operations.uninstall.possible_development_title"),
+    description: t(
+      "core.theme.operations.uninstall.possible_development_description"
+    ),
+    confirmText: t("core.common.buttons.confirm"),
+    cancelText: t("core.common.buttons.cancel"),
+    confirmType: "danger",
+    onConfirm: async () => {
+      try {
+        await uninstallTheme(deleteExtensions);
+      } catch (e) {
+        Toast.error(t("core.common.toast.operation_failed"));
+        console.error("Failed to uninstall development theme", e);
+      }
+    },
+  });
+};
+
+const handleUninstall = async (deleteExtensions?: boolean) => {
+  const isDevelopmentTheme = props.theme.status?.inDevelopment === true;
+
+  Dialog.warning({
+    title: deleteExtensions
+      ? t("core.theme.operations.uninstall_and_delete_config.title")
+      : t("core.theme.operations.uninstall.title"),
     description: t("core.common.dialog.descriptions.cannot_be_recovered"),
     confirmText: t("core.common.buttons.confirm"),
     cancelText: t("core.common.buttons.cancel"),
+    confirmType: "danger",
     onConfirm: async () => {
+      if (isDevelopmentTheme) {
+        confirmDevelopmentThemeUninstall(deleteExtensions);
+        return;
+      }
+
       try {
-        await coreApiClient.theme.theme.deleteTheme({
-          name: props.theme.metadata.name,
-        });
-
-        // delete theme setting and configMap
-        if (deleteExtensions) {
-          const { settingName, configMapName } = props.theme.spec;
-
-          if (settingName) {
-            await coreApiClient.setting.deleteSetting(
-              {
-                name: settingName,
-              },
-              {
-                mute: true,
-              }
-            );
-          }
-
-          if (configMapName) {
-            await coreApiClient.configMap.deleteConfigMap(
-              {
-                name: configMapName,
-              },
-              {
-                mute: true,
-              }
-            );
-          }
-        }
-
-        Toast.success(t("core.common.toast.uninstall_success"));
+        await uninstallTheme(deleteExtensions);
       } catch (e) {
+        Toast.error(t("core.common.toast.operation_failed"));
         console.error("Failed to uninstall theme", e);
-      } finally {
-        queryClient.invalidateQueries({ queryKey: ["installed-themes"] });
       }
     },
   });

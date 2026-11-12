@@ -1,9 +1,5 @@
 <script lang="ts" setup>
-// core libs
-import { coreApiClient } from "@halo-dev/api-client";
-import { ref } from "vue";
-
-// components
+import { consoleApiClient } from "@halo-dev/api-client";
 import {
   IconAddCircle,
   IconBookRead,
@@ -14,51 +10,65 @@ import {
   VPageHeader,
   VSpace,
 } from "@halo-dev/components";
+import { Draggable } from "@he-tree/vue";
+import "@he-tree/vue/style/default.css";
+import { ref } from "vue";
 import CategoryEditingModal from "./components/CategoryEditingModal.vue";
 import CategoryListItem from "./components/CategoryListItem.vue";
-
-import { convertTreeToCategories, resetCategoriesTreePriority } from "./utils";
-
-// libs
-import { useDebounceFn } from "@vueuse/core";
-
-// hooks
 import { usePostCategory } from "./composables/use-post-category";
+import { buildCategoryPositionRequest } from "./utils";
 
 const creationModal = ref(false);
 
-const { categories, categoriesTree, isLoading, handleFetchCategories } =
-  usePostCategory();
+const {
+  categories,
+  categoriesTree,
+  previousCategoriesTree,
+  isLoading,
+  handleFetchCategories,
+  setCategoriesTree,
+} = usePostCategory();
 
-const batchUpdating = ref(false);
+const positionUpdating = ref(false);
 
-const handleUpdateInBatch = useDebounceFn(async () => {
-  const categoriesTreeToUpdate = resetCategoriesTreePriority(
+async function handleUpdatePosition() {
+  if (positionUpdating.value) {
+    return;
+  }
+
+  const positionRequest = buildCategoryPositionRequest(
+    previousCategoriesTree.value,
     categoriesTree.value
   );
-  const categoriesToUpdate = convertTreeToCategories(categoriesTreeToUpdate);
-  try {
-    batchUpdating.value = true;
-    const promises = categoriesToUpdate.map((category) =>
-      coreApiClient.content.category.updateCategory({
-        name: category.metadata.name,
-        category: category,
-      })
-    );
-    await Promise.all(promises);
-  } catch (e) {
-    console.error("Failed to update categories", e);
-  } finally {
+  if (!positionRequest) {
     await handleFetchCategories();
-    batchUpdating.value = false;
+    return;
   }
-}, 300);
+
+  try {
+    positionUpdating.value = true;
+    const { data } =
+      await consoleApiClient.content.category.updateCategoryPosition({
+        name: positionRequest.name,
+        categoryPositionRequest: {
+          parentName: positionRequest.parentName,
+          beforeName: positionRequest.beforeName,
+        },
+      });
+    setCategoriesTree(data);
+  } catch (e) {
+    console.error("Failed to update category position", e);
+    await handleFetchCategories();
+  } finally {
+    positionUpdating.value = false;
+  }
+}
 </script>
 <template>
   <CategoryEditingModal v-if="creationModal" @close="creationModal = false" />
   <VPageHeader :title="$t('core.post_category.title')">
     <template #icon>
-      <IconBookRead class="mr-2 self-center" />
+      <IconBookRead />
     </template>
 
     <template #actions>
@@ -68,7 +78,7 @@ const handleUpdateInBatch = useDebounceFn(async () => {
         @click="creationModal = true"
       >
         <template #icon>
-          <IconAddCircle class="h-full w-full" />
+          <IconAddCircle />
         </template>
         {{ $t("core.common.buttons.new") }}
       </VButton>
@@ -106,11 +116,11 @@ const handleUpdateInBatch = useDebounceFn(async () => {
               </VButton>
               <VButton
                 v-permission="['system:posts:manage']"
-                type="primary"
+                type="secondary"
                 @click="creationModal = true"
               >
                 <template #icon>
-                  <IconAddCircle class="h-full w-full" />
+                  <IconAddCircle />
                 </template>
                 {{ $t("core.common.buttons.new") }}
               </VButton>
@@ -119,14 +129,33 @@ const handleUpdateInBatch = useDebounceFn(async () => {
         </VEmpty>
       </Transition>
       <Transition v-else appear name="fade">
-        <CategoryListItem
+        <Draggable
           v-model="categoriesTree"
           :class="{
-            'cursor-progress opacity-60': batchUpdating,
+            'cursor-progress opacity-60': positionUpdating,
           }"
-          @change="handleUpdateInBatch"
-        />
+          :disable-drag="positionUpdating"
+          trigger-class="drag-element"
+          :indent="40"
+          @after-drop="handleUpdatePosition"
+        >
+          <template #default="{ node }">
+            <CategoryListItem :category-tree-node="node" />
+          </template>
+        </Draggable>
       </Transition>
     </VCard>
   </div>
 </template>
+<style scoped>
+:deep(.vtlist-inner) {
+  @apply divide-y divide-gray-100;
+}
+:deep(.he-tree-drag-placeholder) {
+  box-sizing: border-box;
+  height: 60px;
+  width: 100%;
+  border: 1px dashed #00d9ff;
+  background: #ddf2f9;
+}
+</style>

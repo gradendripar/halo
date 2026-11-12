@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -27,13 +30,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.util.ResourceUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import run.halo.app.content.CategoryService;
 import run.halo.app.core.extension.content.Category;
-import run.halo.app.extension.ListOptions;
-import run.halo.app.extension.ListResult;
-import run.halo.app.extension.Metadata;
-import run.halo.app.extension.PageRequest;
-import run.halo.app.extension.ReactiveExtensionClient;
+import run.halo.app.extension.*;
 import run.halo.app.infra.utils.JsonUtils;
 import run.halo.app.theme.finders.vo.CategoryTreeVo;
 import run.halo.app.theme.finders.vo.CategoryVo;
@@ -63,8 +63,7 @@ class CategoryFinderImplTest {
 
     @Test
     void getByName() throws JSONException {
-        when(client.fetch(eq(Category.class), eq("hello")))
-            .thenReturn(Mono.just(category()));
+        when(client.fetch(eq(Category.class), eq("hello"))).thenReturn(Mono.just(category()));
         CategoryVo categoryVo = categoryFinder.getByName("hello").block();
         categoryVo.getMetadata().setCreationTimestamp(null);
         JSONAssert.assertEquals("""
@@ -90,29 +89,68 @@ class CategoryFinderImplTest {
                          "hideFromList": false
                      }
                 }
-                """,
-            JsonUtils.objectToJson(categoryVo),
-            true);
+                """, JsonUtils.objectToJson(categoryVo), true);
+    }
+
+    @Test
+    void getByNames() {
+        // categories sorted by default comparator: c3, c2, hello
+        var sortedCategories = categories().stream()
+                .sorted(CategoryFinderImpl.defaultComparator())
+                .toList();
+        when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
+                .thenReturn(Flux.fromIterable(sortedCategories));
+
+        // request in a specific order that differs from natural sort: hello, c3, c2
+        var result = categoryFinder
+                .getByNames(List.of("hello", "c3", "c2"))
+                .collectList()
+                .block();
+        assertThat(result).hasSize(3);
+        assertThat(result.stream().map(vo -> vo.getMetadata().getName()).toList())
+                .isEqualTo(List.of("hello", "c3", "c2"));
     }
 
     @Test
     void list() {
-        ListResult<Category> categories = new ListResult<>(1, 10, 3,
-            categories().stream()
-                .sorted(CategoryFinderImpl.defaultComparator())
-                .toList());
+        ListResult<Category> categories = new ListResult<>(
+                1,
+                10,
+                3,
+                categories().stream()
+                        .sorted(CategoryFinderImpl.defaultComparator())
+                        .toList());
         when(client.listBy(eq(Category.class), any(ListOptions.class), any(PageRequest.class)))
-            .thenReturn(Mono.just(categories));
+                .thenReturn(Mono.just(categories));
         ListResult<CategoryVo> list = categoryFinder.list(1, 10).block();
         assertThat(list.getItems()).hasSize(3);
-        assertThat(list.get().map(categoryVo -> categoryVo.getMetadata().getName()).toList())
-            .isEqualTo(List.of("c3", "c2", "hello"));
+        assertThat(list.get()
+                        .map(categoryVo -> categoryVo.getMetadata().getName())
+                        .toList())
+                .isEqualTo(List.of("c3", "c2", "hello"));
+    }
+
+    @Test
+    void listAllUsesHideFromListIndexUnlessParentIsHidden() {
+        when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
+                .thenReturn(Flux.empty());
+        when(categoryService.isCategoryHidden("hidden")).thenReturn(Mono.just(true));
+
+        categoryFinder.listAll().collectList().block();
+        categoryFinder.listAsTree("visible").collectList().block();
+        categoryFinder.listAsTree("hidden").collectList().block();
+
+        var optionsCaptor = ArgumentCaptor.forClass(ListOptions.class);
+        verify(client, times(3)).listAll(eq(Category.class), optionsCaptor.capture(), any(Sort.class));
+        assertThat(optionsCaptor.getAllValues())
+                .extracting(options -> options.toCondition().toString())
+                .containsExactly("spec.hideFromList != true", "spec.hideFromList != true", "EMPTY");
     }
 
     @Test
     void listAsTree() {
         when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
-            .thenReturn(Flux.fromIterable(categoriesForTree()));
+                .thenReturn(Flux.fromIterable(categoriesForTree()));
         List<CategoryTreeVo> treeVos = categoryFinder.listAsTree().collectList().block();
         assertThat(treeVos).hasSize(1);
     }
@@ -120,12 +158,47 @@ class CategoryFinderImplTest {
     @Test
     void listSubTreeByName() {
         when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
-            .thenReturn(Flux.fromIterable(categoriesForTree()));
-        List<CategoryTreeVo> treeVos = categoryFinder.listAsTree("E").collectList().block();
+                .thenReturn(Flux.fromIterable(categoriesForTree()));
+        List<CategoryTreeVo> treeVos =
+                categoryFinder.listAsTree("E").collectList().block();
         assertThat(treeVos.get(0).getMetadata().getName()).isEqualTo("E");
         assertThat(treeVos.get(0).getChildren()).hasSize(2);
         assertThat(treeVos.get(0).getChildren().get(0).getMetadata().getName()).isEqualTo("A");
         assertThat(treeVos.get(0).getChildren().get(1).getMetadata().getName()).isEqualTo("C");
+    }
+
+    @Test
+    void listAsTreeTreatsInvalidParentsAsRoots() {
+        var root = category("root", null);
+        var missingParent = category("missing-parent", "missing");
+        var selfParent = category("self-parent", "self-parent");
+        var cyclicA = category("cyclic-a", "cyclic-b");
+        var cyclicB = category("cyclic-b", "cyclic-a");
+        var validChildOfCyclicRoot = category("child", "cyclic-a");
+
+        when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
+                .thenReturn(Flux.fromIterable(
+                        List.of(root, missingParent, selfParent, cyclicA, cyclicB, validChildOfCyclicRoot)));
+
+        categoryFinder
+                .listAsTree()
+                .collectList()
+                .as(StepVerifier::create)
+                .assertNext(treeVos -> {
+                    assertThat(treeVos.stream()
+                                    .map(vo -> vo.getMetadata().getName())
+                                    .toList())
+                            .containsExactly("root", "missing-parent", "self-parent", "cyclic-a", "cyclic-b");
+                    var cyclicANode = treeVos.stream()
+                            .filter(vo -> vo.getMetadata().getName().equals("cyclic-a"))
+                            .findFirst()
+                            .orElseThrow();
+                    assertThat(cyclicANode.getParentName()).isNull();
+                    assertThat(cyclicANode.getChildren())
+                            .extracting(child -> child.getMetadata().getName())
+                            .containsExactly("child");
+                })
+                .verifyComplete();
     }
 
     /**
@@ -136,7 +209,7 @@ class CategoryFinderImplTest {
     @Test
     void listAsTreeMore() {
         when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
-            .thenReturn(Flux.fromIterable(moreCategories()));
+                .thenReturn(Flux.fromIterable(moreCategories()));
         List<CategoryTreeVo> treeVos = categoryFinder.listAsTree().collectList().block();
         String s = visualizeTree(treeVos);
         assertThat(s).isEqualTo("""
@@ -154,7 +227,8 @@ class CategoryFinderImplTest {
     class CategoryPostCountTest {
 
         /**
-         * <p>Structure below.</p>
+         * Structure below.
+         *
          * <pre>
          * 全部 (35)
          * ├── FIT2CLOUD (15)
@@ -190,16 +264,15 @@ class CategoryFinderImplTest {
         void setUp() throws IOException {
             var file = ResourceUtils.getFile("classpath:categories/independent-post-count.json");
             var json = Files.readString(file.toPath());
-            categories = JsonUtils.jsonToObject(json, new TypeReference<>() {
-            });
+            categories = JsonUtils.jsonToObject(json, new TypeReference<>() {});
+            populateParentReferences(categories);
         }
 
         @Test
         void computePostCountFromTree() {
             when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
-                .thenReturn(Flux.fromIterable(categories));
-            var treeVos = categoryFinder.listAsTree("全部")
-                .collectList().block();
+                    .thenReturn(Flux.fromIterable(categories));
+            var treeVos = categoryFinder.listAsTree("全部").collectList().block();
             assertThat(treeVos).hasSize(1);
             String s = visualizeTree(treeVos.get(0).getChildren());
             assertThat(s).isEqualTo("""
@@ -235,52 +308,59 @@ class CategoryFinderImplTest {
         @Test
         void getBreadcrumbsTest() {
             when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
-                .thenReturn(Flux.fromIterable(categories));
+                    .thenReturn(Flux.fromIterable(categories));
             // first level
             var breadcrumbs = categoryFinder.getBreadcrumbs("全部").collectList().block();
             assertThat(toNames(breadcrumbs)).containsSequence("全部");
 
             // second level
-            breadcrumbs = categoryFinder.getBreadcrumbs("AnotherRootChild").collectList().block();
+            breadcrumbs = categoryFinder
+                    .getBreadcrumbs("AnotherRootChild")
+                    .collectList()
+                    .block();
             assertThat(toNames(breadcrumbs)).containsSequence("全部", "AnotherRootChild");
 
             // more levels
-            breadcrumbs = categoryFinder.getBreadcrumbs("DeepNode5").collectList().block();
-            assertThat(toNames(breadcrumbs)).containsSequence("全部", "AnotherRootChild", "Child1",
-                "SubChild2", "DeepNode3", "DeepNode5");
+            breadcrumbs =
+                    categoryFinder.getBreadcrumbs("DeepNode5").collectList().block();
+            assertThat(toNames(breadcrumbs))
+                    .containsSequence("全部", "AnotherRootChild", "Child1", "SubChild2", "DeepNode3", "DeepNode5");
 
-            breadcrumbs = categoryFinder.getBreadcrumbs("IndependentChild4").collectList().block();
-            assertThat(toNames(breadcrumbs)).containsSequence("全部", "FIT2CLOUD",
-                "IndependentNode",
-                "IndependentChild4");
+            breadcrumbs = categoryFinder
+                    .getBreadcrumbs("IndependentChild4")
+                    .collectList()
+                    .block();
+            assertThat(toNames(breadcrumbs))
+                    .containsSequence("全部", "FIT2CLOUD", "IndependentNode", "IndependentChild4");
 
-            breadcrumbs = categoryFinder.getBreadcrumbs("SubNode4").collectList().block();
-            assertThat(toNames(breadcrumbs)).containsSequence("全部", "AnotherRootChild", "Child2",
-                "IndependentSubNode", "SubNode4");
+            breadcrumbs =
+                    categoryFinder.getBreadcrumbs("SubNode4").collectList().block();
+            assertThat(toNames(breadcrumbs))
+                    .containsSequence("全部", "AnotherRootChild", "Child2", "IndependentSubNode", "SubNode4");
 
             // not exist
-            breadcrumbs = categoryFinder.getBreadcrumbs("not-exist").collectList().block();
+            breadcrumbs =
+                    categoryFinder.getBreadcrumbs("not-exist").collectList().block();
             assertThat(toNames(breadcrumbs)).isEmpty();
         }
 
         @Test
         void getBreadcrumbsForHiddenTest() {
             Map<String, Category> categoryMap = categories.stream()
-                .collect(
-                    Collectors.toMap(item -> item.getMetadata().getName(), Function.identity()));
+                    .collect(Collectors.toMap(item -> item.getMetadata().getName(), Function.identity()));
             var category = categoryMap.get("IndependentNode");
             category.getSpec().setHideFromList(true);
             when(client.listAll(eq(Category.class), any(ListOptions.class), any(Sort.class)))
-                .thenReturn(Flux.fromIterable(categoryMap.values()));
+                    .thenReturn(Flux.fromIterable(categoryMap.values()));
 
-            when(categoryService.isCategoryHidden(eq("IndependentChild4")))
-                .thenReturn(Mono.just(true));
+            when(categoryService.isCategoryHidden(eq("IndependentChild4"))).thenReturn(Mono.just(true));
 
-            var breadcrumbs = categoryFinder.getBreadcrumbs("IndependentChild4")
-                .collectList().block();
-            assertThat(toNames(breadcrumbs)).containsSequence("全部", "FIT2CLOUD",
-                "IndependentNode",
-                "IndependentChild4");
+            var breadcrumbs = categoryFinder
+                    .getBreadcrumbs("IndependentChild4")
+                    .collectList()
+                    .block();
+            assertThat(toNames(breadcrumbs))
+                    .containsSequence("全部", "FIT2CLOUD", "IndependentNode", "IndependentChild4");
         }
 
         static List<String> toNames(List<CategoryVo> categories) {
@@ -288,8 +368,8 @@ class CategoryFinderImplTest {
                 return List.of();
             }
             return categories.stream()
-                .map(category -> category.getMetadata().getName())
-                .toList();
+                    .map(category -> category.getMetadata().getName())
+                    .toList();
         }
     }
 
@@ -310,52 +390,57 @@ class CategoryFinderImplTest {
 
         Category e = category();
         e.getMetadata().setName("E");
+        e.getSpec().setParent("D");
         e.getSpec().setChildren(List.of("A", "C"));
 
         Category a = category();
         a.getMetadata().setName("A");
+        a.getSpec().setParent("E");
         a.getSpec().setChildren(List.of("B"));
 
         Category b = category();
         b.getMetadata().setName("B");
+        b.getSpec().setParent("A");
         b.getSpec().setChildren(null);
 
         Category c = category();
         c.getMetadata().setName("C");
+        c.getSpec().setParent("E");
         c.getSpec().setChildren(null);
 
         Category g = category();
         g.getMetadata().setName("G");
+        g.getSpec().setParent("D");
         g.getSpec().setChildren(null);
 
         Category f = category();
         f.getMetadata().setName("F");
+        f.getSpec().setParent("D");
         f.getSpec().setChildren(List.of("H"));
 
         Category h = category();
         h.getMetadata().setName("H");
+        h.getSpec().setParent("F");
         h.getSpec().setChildren(null);
         return List.of(d, e, a, b, c, g, f, h);
     }
 
-    /**
-     * Visualize a tree.
-     */
+    /** Visualize a tree. */
     String visualizeTree(List<CategoryTreeVo> categoryTreeVos) {
         Category.CategorySpec categorySpec = new Category.CategorySpec();
         categorySpec.setSlug("/");
         categorySpec.setDisplayName("全部");
         Integer postCount = categoryTreeVos.stream()
-            .map(CategoryTreeVo::getPostCount)
-            .filter(Objects::nonNull)
-            .reduce(Integer::sum)
-            .orElse(0);
+                .map(CategoryTreeVo::getPostCount)
+                .filter(Objects::nonNull)
+                .reduce(Integer::sum)
+                .orElse(0);
         CategoryTreeVo root = CategoryTreeVo.builder()
-            .spec(categorySpec)
-            .postCount(postCount)
-            .children(categoryTreeVos)
-            .metadata(new Metadata())
-            .build();
+                .spec(categorySpec)
+                .postCount(postCount)
+                .children(categoryTreeVos)
+                .metadata(new Metadata())
+                .build();
         StringBuilder stringBuilder = new StringBuilder();
         root.print(stringBuilder, "", "");
         return stringBuilder.toString();
@@ -392,6 +477,32 @@ class CategoryFinderImplTest {
         categorySpec.setChildren(List.of("C1", "C2"));
         category.setSpec(categorySpec);
         return category;
+    }
+
+    private Category category(String name, String parentName) {
+        var category = category();
+        category.getMetadata().setName(name);
+        category.getSpec().setDisplayName(name);
+        category.getSpec().setParent(parentName);
+        category.getSpec().setChildren(null);
+        return category;
+    }
+
+    private static void populateParentReferences(List<Category> categories) {
+        var categoryMap = categories.stream()
+                .collect(Collectors.toMap(category -> category.getMetadata().getName(), Function.identity()));
+        for (Category parent : categories) {
+            var children = parent.getSpec().getChildren();
+            if (children == null) {
+                continue;
+            }
+            for (String childName : children) {
+                var child = categoryMap.get(childName);
+                if (child != null) {
+                    child.getSpec().setParent(parent.getMetadata().getName());
+                }
+            }
+        }
     }
 
     private List<Category> moreCategories() {
@@ -564,7 +675,8 @@ class CategoryFinderImplTest {
                }
             ]
             """;
-        return JsonUtils.jsonToObject(s, new TypeReference<>() {
-        });
+        List<Category> categories = JsonUtils.jsonToObject(s, new TypeReference<>() {});
+        populateParentReferences(categories);
+        return categories;
     }
 }

@@ -1,35 +1,60 @@
 package run.halo.app.extension;
 
 import java.util.List;
+import java.util.function.Function;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.jspecify.annotations.Nullable;
+import run.halo.app.extension.index.query.Condition;
+import run.halo.app.extension.index.query.LabelCondition;
 import run.halo.app.extension.index.query.Query;
-import run.halo.app.extension.index.query.QueryFactory;
 import run.halo.app.extension.router.selector.FieldSelector;
 import run.halo.app.extension.router.selector.LabelSelector;
-import run.halo.app.extension.router.selector.SelectorMatcher;
 
 @Data
 @Accessors(chain = true)
+@SuppressWarnings("removal")
 public class ListOptions {
-    private LabelSelector labelSelector;
-    private FieldSelector fieldSelector;
+
+    private @Nullable LabelSelector labelSelector;
+
+    private @Nullable FieldSelector fieldSelector;
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        if (fieldSelector != null) {
-            var query = fieldSelector.query().toString();
-            sb.append("fieldSelector: ")
-                .append(query.startsWith("(") ? query : "(" + query + ")");
-        }
-        if (labelSelector != null) {
-            if (!sb.isEmpty()) {
-                sb.append(", ");
+        return toCondition().toString();
+    }
+
+    /**
+     * Convert to a single condition.
+     *
+     * @return the condition, never null
+     */
+    public Condition toCondition() {
+        Condition condition = null;
+        var fieldSelector = getFieldSelector();
+        if (fieldSelector != null && fieldSelector.query() != null) {
+            var query = fieldSelector.query();
+            if (!(query instanceof Condition fieldCondition)) {
+                throw new IllegalArgumentException("Only support condition query");
             }
-            sb.append("labelSelector: (").append(labelSelector).append(")");
+            condition = fieldCondition;
         }
-        return sb.toString();
+        var labelSelector = getLabelSelector();
+        if (labelSelector != null) {
+            var labelCondition = labelSelector.getConditions().stream()
+                    .map(Function.<Condition>identity())
+                    .reduce(Condition::and)
+                    .orElse(null);
+            if (labelCondition != null) {
+                if (condition == null) {
+                    condition = labelCondition;
+                } else {
+                    condition = condition.and(labelCondition);
+                }
+            }
+        }
+        return condition == null ? Condition.empty() : condition;
     }
 
     public static ListOptionsBuilder builder() {
@@ -42,27 +67,24 @@ public class ListOptions {
 
     public static class ListOptionsBuilder {
         private LabelSelectorBuilder labelSelectorBuilder;
-        private Query query;
 
-        public ListOptionsBuilder() {
-        }
+        @SuppressWarnings("removal")
+        private @Nullable Query query;
 
-        /**
-         * Create a new list options builder with the given list options.
-         */
+        public ListOptionsBuilder() {}
+
+        /** Create a new list options builder with the given list options. */
         public ListOptionsBuilder(ListOptions listOptions) {
             if (listOptions.getLabelSelector() != null) {
-                this.labelSelectorBuilder = new LabelSelectorBuilder(
-                    listOptions.getLabelSelector().getMatchers(), this);
+                this.labelSelectorBuilder =
+                        new LabelSelectorBuilder(listOptions.getLabelSelector().getConditions(), this);
             }
             if (listOptions.getFieldSelector() != null) {
                 this.query = listOptions.getFieldSelector().query();
             }
         }
 
-        /**
-         * Create a new label selector builder.
-         */
+        /** Create a new label selector builder. */
         public LabelSelectorBuilder labelSelector() {
             if (labelSelectorBuilder == null) {
                 labelSelectorBuilder = new LabelSelectorBuilder(this);
@@ -75,25 +97,39 @@ public class ListOptions {
             return this;
         }
 
-        /**
-         * And the given query to the current query.
-         */
+        /** And the given query to the current query. */
         public ListOptionsBuilder andQuery(Query query) {
-            this.query = (this.query == null ? query : QueryFactory.and(this.query, query));
+            if (!(query instanceof Condition condition)) {
+                throw new IllegalArgumentException("Given query must be an instance of Condition");
+            }
+            if (this.query == null) {
+                this.query = condition;
+            } else {
+                if (!(this.query instanceof Condition currentCondition)) {
+                    throw new IllegalArgumentException("Current query must be an instance of Condition");
+                }
+                this.query = currentCondition.and(condition);
+            }
             return this;
         }
 
-        /**
-         * Or the given query to the current query.
-         */
+        /** Or the given query to the current query. */
         public ListOptionsBuilder orQuery(Query query) {
-            this.query = (this.query == null ? query : QueryFactory.or(this.query, query));
+            if (!(query instanceof Condition condition)) {
+                throw new IllegalArgumentException("Given query must be an instance of Condition");
+            }
+            if (this.query == null) {
+                this.query = condition;
+            } else {
+                if (!(this.query instanceof Condition currentCondition)) {
+                    throw new IllegalArgumentException("Current query must be an instance of Condition");
+                }
+                this.query = currentCondition.or(condition);
+            }
             return this;
         }
 
-        /**
-         * Build the list options.
-         */
+        /** Build the list options. */
         public ListOptions build() {
             var listOptions = new ListOptions();
             if (labelSelectorBuilder != null) {
@@ -106,13 +142,11 @@ public class ListOptions {
         }
     }
 
-    public static class LabelSelectorBuilder
-        extends LabelSelector.LabelSelectorBuilder<LabelSelectorBuilder> {
+    public static class LabelSelectorBuilder extends LabelSelector.LabelSelectorBuilder<LabelSelectorBuilder> {
         private final ListOptionsBuilder listOptionsBuilder;
 
-        public LabelSelectorBuilder(List<SelectorMatcher> givenMatchers,
-            ListOptionsBuilder listOptionsBuilder) {
-            super(givenMatchers);
+        public LabelSelectorBuilder(List<LabelCondition> conditions, ListOptionsBuilder listOptionsBuilder) {
+            super(conditions);
             this.listOptionsBuilder = listOptionsBuilder;
         }
 

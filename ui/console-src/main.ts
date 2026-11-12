@@ -1,112 +1,72 @@
-import { consoleApiClient } from "@halo-dev/api-client";
+import modules from "@console/modules";
+import { stores } from "@halo-dev/ui-shared";
 import { createPinia } from "pinia";
-import type { DirectiveBinding } from "vue";
+import "@/setup/setupStyles";
 import { createApp } from "vue";
+import { builtinFormKitInputs } from "@/formkit/inputs";
+import { setLanguage, setupI18n } from "@/locales";
+import { setupApiClient } from "@/setup/setupApiClient";
+import "@/setup/setupFormKitRuntime";
+import {
+  setupComponents,
+  type SetupComponentsOptions,
+} from "@/setup/setupComponents";
+import { setupCoreModules, setupUiPluginRuntime } from "@/setup/setupModules";
+import "core-js/es/object/has-own";
+import { setupUserPermissions } from "@/setup/setupUserPermissions";
+import { setupVueQuery } from "@/setup/setupVueQuery";
 import App from "./App.vue";
 import router from "./router";
-// setup
-import { getBrowserLanguage, i18n, setupI18n } from "@/locales";
-import { setupComponents } from "@/setup/setupComponents";
-import "@/setup/setupStyles";
-// core modules
-import { setupApiClient } from "@/setup/setupApiClient";
-import { setupVueQuery } from "@/setup/setupVueQuery";
-import { useGlobalInfoStore } from "@/stores/global-info";
-import { useRoleStore } from "@/stores/role";
-import { useUserStore } from "@/stores/user";
-import { hasPermission } from "@/utils/permission";
-import {
-  setupCoreModules,
-  setupPluginModules,
-} from "@console/setup/setupModules";
-import { useSystemConfigMapStore } from "@console/stores/system-configmap";
-import { useThemeStore } from "@console/stores/theme";
 
 const app = createApp(App);
+let componentsReady = false;
 
-setupComponents(app);
 setupI18n(app);
 setupVueQuery(app);
 setupApiClient();
 
 app.use(createPinia());
 
-async function loadUserPermissions() {
-  const { data: currentPermissions } =
-    await consoleApiClient.user.getPermissions({
-      name: "-",
-    });
-  const roleStore = useRoleStore();
-  roleStore.$patch({
-    permissions: currentPermissions,
-  });
-  app.directive(
-    "permission",
-    (el: HTMLElement, binding: DirectiveBinding<string[]>) => {
-      const uiPermissions = Array.from<string>(
-        currentPermissions.uiPermissions
-      );
-      const { value } = binding;
-      const { any, enable } = binding.modifiers;
-
-      if (hasPermission(uiPermissions, value, any)) {
-        return;
-      }
-
-      if (enable) {
-        //TODO
-        return;
-      }
-      el?.remove?.();
-    }
-  );
+function setupAppComponents(options?: SetupComponentsOptions) {
+  if (componentsReady) {
+    return;
+  }
+  setupComponents(app, options);
+  componentsReady = true;
 }
 
-async function loadActivatedTheme() {
-  const themeStore = useThemeStore();
-  await themeStore.fetchActivatedTheme();
-}
-
-(async function () {
-  await initApp();
-})();
+await initApp();
 
 async function initApp() {
   try {
-    setupCoreModules(app);
+    setupCoreModules({ app, router, platform: "console", modules });
 
-    const userStore = useUserStore();
-    await userStore.fetchCurrentUser();
+    await setLanguage();
 
-    // set locale
-    i18n.global.locale.value =
-      localStorage.getItem("locale") || getBrowserLanguage();
+    const currentUserStore = stores.currentUser();
+    await currentUserStore.fetchCurrentUser();
 
-    const globalInfoStore = useGlobalInfoStore();
+    const globalInfoStore = stores.globalInfo();
     await globalInfoStore.fetchGlobalInfo();
 
-    if (userStore.isAnonymous) {
+    if (currentUserStore.isAnonymous) {
+      setupAppComponents();
       return;
     }
 
-    await loadUserPermissions();
+    await setupUserPermissions(app);
 
-    try {
-      await setupPluginModules(app);
-    } catch (e) {
-      console.error("Failed to load plugins", e);
-    }
-
-    // load system configMap
-    const systemConfigMapStore = useSystemConfigMapStore();
-    await systemConfigMapStore.fetchSystemConfigMap();
-
-    if (globalInfoStore.globalInfo?.userInitialized) {
-      await loadActivatedTheme();
-    }
+    await setupUiPluginRuntime({
+      app,
+      router,
+      platform: "console",
+      setupComponents: setupAppComponents,
+      registeredFormKitInputs: builtinFormKitInputs,
+    });
   } catch (e) {
     console.error(e);
   } finally {
+    setupAppComponents();
     app.use(router);
     app.mount("#app");
   }

@@ -1,20 +1,14 @@
 <script lang="ts" setup>
-// core libs
 import type { User } from "@halo-dev/api-client";
-import { coreApiClient } from "@halo-dev/api-client";
-import { nextTick, ref } from "vue";
-
-// components
-import SubmitButton from "@/components/button/SubmitButton.vue";
+import { consoleApiClient } from "@halo-dev/api-client";
 import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
-
-// libs
-import { cloneDeep } from "lodash-es";
-
-// hooks
-import AnnotationsForm from "@/components/form/AnnotationsForm.vue";
+import { utils } from "@halo-dev/ui-shared";
 import { useQueryClient } from "@tanstack/vue-query";
+import { cloneDeep } from "es-toolkit";
+import { nextTick, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import SubmitButton from "@/components/button/SubmitButton.vue";
+import type AnnotationsForm from "@/components/form/AnnotationsForm.vue";
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
@@ -54,9 +48,21 @@ const handleUpdateUser = async () => {
   try {
     isSubmitting.value = true;
 
-    await coreApiClient.user.updateUser({
+    if (formState.value.spec.displayName) {
+      formState.value.spec.displayName =
+        formState.value.spec.displayName.trim();
+    }
+
+    await consoleApiClient.user.updateUserProfile({
       name: formState.value.metadata.name,
-      user: formState.value,
+      updateUserProfileRequest: {
+        displayName: formState.value.spec.displayName,
+        email: formState.value.spec.email || "",
+        avatar: formState.value.spec.avatar,
+        phone: formState.value.spec.phone,
+        bio: formState.value.spec.bio,
+        annotations: formState.value.metadata.annotations,
+      },
     });
 
     modal.value?.close();
@@ -114,6 +120,7 @@ const handleUpdateUser = async () => {
             ></FormKit>
             <FormKit
               v-model="formState.spec.email"
+              :disabled="!utils.permission.has(['*'])"
               :label="$t('core.user.editing_modal.fields.email.label')"
               type="email"
               name="email"
@@ -124,6 +131,8 @@ const handleUpdateUser = async () => {
               :label="$t('core.user.editing_modal.fields.bio.label')"
               type="textarea"
               name="bio"
+              auto-height
+              :max-auto-height="200"
               validation="length:0,2048"
             ></FormKit>
           </div>
@@ -148,6 +157,7 @@ const handleUpdateUser = async () => {
           :key="formState.metadata.name"
           ref="annotationsFormRef"
           :value="formState.metadata.annotations"
+          :form-data="formState"
           kind="User"
           group=""
         />

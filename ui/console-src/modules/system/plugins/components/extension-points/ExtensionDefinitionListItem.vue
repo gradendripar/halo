@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import {
   coreApiClient,
+  paginate,
   type ExtensionDefinition,
   type Plugin,
+  type PluginV1alpha1ApiListPluginRequest,
 } from "@halo-dev/api-client";
 import {
   IconSettings,
@@ -11,7 +13,7 @@ import {
   VEntityField,
 } from "@halo-dev/components";
 import { useQuery } from "@tanstack/vue-query";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 const props = withDefaults(
   defineProps<{ extensionDefinition: ExtensionDefinition }>(),
@@ -21,11 +23,12 @@ const props = withDefaults(
 const { data: plugins } = useQuery<Plugin[]>({
   queryKey: ["extension-definition-related-plugins"],
   queryFn: async () => {
-    const { data } = await coreApiClient.plugin.plugin.listPlugin({
-      page: 0,
-      size: 0,
-    });
-    return data.items;
+    return await paginate<PluginV1alpha1ApiListPluginRequest, Plugin>(
+      (params) => coreApiClient.plugin.plugin.listPlugin(params),
+      {
+        size: 1000,
+      }
+    );
   },
 });
 
@@ -36,9 +39,16 @@ const matchedPlugin = computed(() => {
       props.extensionDefinition.metadata.labels?.["plugin.halo.run/plugin-name"]
   );
 });
+
+const pluginDetailModalVisible = ref(false);
 </script>
 
 <template>
+  <PluginDetailModal
+    v-if="pluginDetailModalVisible && matchedPlugin"
+    :name="matchedPlugin.metadata.name"
+    @close="pluginDetailModalVisible = false"
+  />
   <VEntity>
     <template v-if="$slots['selection-indicator']" #checkbox>
       <slot name="selection-indicator" />
@@ -58,20 +68,18 @@ const matchedPlugin = computed(() => {
         :description="extensionDefinition.spec.description"
       ></VEntityField>
     </template>
-    <template v-if="matchedPlugin" #end>
-      <VEntityField>
+    <template #end>
+      <VEntityField v-if="matchedPlugin">
         <template #description>
-          <RouterLink
+          <div
             class="cursor-pointer rounded p-1 text-gray-600 transition-all hover:text-blue-600 group-hover:bg-gray-200/60"
-            :to="{
-              name: 'PluginDetail',
-              params: { name: matchedPlugin?.metadata.name },
-            }"
+            @click.prevent="pluginDetailModalVisible = true"
           >
             <IconSettings />
-          </RouterLink>
+          </div>
         </template>
       </VEntityField>
+      <slot name="end" />
     </template>
   </VEntity>
 </template>

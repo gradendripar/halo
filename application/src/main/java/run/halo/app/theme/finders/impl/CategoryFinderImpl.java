@@ -1,14 +1,9 @@
 package run.halo.app.theme.finders.impl;
 
-import static run.halo.app.extension.index.query.QueryFactory.notEqual;
+import static run.halo.app.extension.index.query.Queries.notEqual;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -16,18 +11,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Sort;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.app.content.CategoryService;
 import run.halo.app.core.extension.content.Category;
-import run.halo.app.extension.ListOptions;
-import run.halo.app.extension.ListResult;
-import run.halo.app.extension.Metadata;
-import run.halo.app.extension.PageRequestImpl;
-import run.halo.app.extension.ReactiveExtensionClient;
+import run.halo.app.extension.*;
+import run.halo.app.extension.index.query.Queries;
 import run.halo.app.extension.router.selector.FieldSelector;
 import run.halo.app.theme.finders.CategoryFinder;
 import run.halo.app.theme.finders.Finder;
@@ -49,139 +42,167 @@ public class CategoryFinderImpl implements CategoryFinder {
 
     @Override
     public Mono<CategoryVo> getByName(String name) {
-        return client.fetch(Category.class, name)
-            .map(CategoryVo::from);
+        return client.fetch(Category.class, name).map(CategoryVo::from);
     }
 
     @Override
-    public Flux<CategoryVo> getByNames(List<String> names) {
-        if (names == null) {
+    public Flux<CategoryVo> getByNames(Collection<String> names) {
+        if (CollectionUtils.isEmpty(names)) {
             return Flux.empty();
         }
-        return Flux.fromIterable(names)
-            .flatMap(this::getByName);
+        var options = ListOptions.builder()
+                .andQuery(Queries.in("metadata.name", names))
+                .build();
+        return client.listAll(Category.class, options, Sort.unsorted())
+                .map(CategoryVo::from)
+                .collectMap(c -> c.getMetadata().getName())
+                .flatMapIterable(map -> names.stream()
+                        .distinct()
+                        .filter(map::containsKey)
+                        .map(map::get)
+                        .toList());
     }
 
     static Sort defaultSort() {
-        return Sort.by(Sort.Order.desc("spec.priority"),
-            Sort.Order.desc("metadata.creationTimestamp"),
-            Sort.Order.desc("metadata.name"));
+        return Sort.by(
+                Sort.Order.desc("spec.priority"),
+                Sort.Order.desc("metadata.creationTimestamp"),
+                Sort.Order.desc("metadata.name"));
     }
 
     @Override
     public Mono<ListResult<CategoryVo>> list(Integer page, Integer size) {
         var listOptions = new ListOptions();
-        listOptions.setFieldSelector(FieldSelector.of(
-            notEqual("spec.hideFromList", BooleanUtils.TRUE)
-        ));
-        return client.listBy(Category.class, listOptions,
-                PageRequestImpl.of(pageNullSafe(page), sizeNullSafe(size), defaultSort())
-            )
-            .map(list -> {
-                List<CategoryVo> categoryVos = list.get()
-                    .map(CategoryVo::from)
-                    .collect(Collectors.toList());
-                return new ListResult<>(list.getPage(), list.getSize(), list.getTotal(),
-                    categoryVos);
-            })
-            .defaultIfEmpty(new ListResult<>(page, size, 0L, List.of()));
+        listOptions.setFieldSelector(FieldSelector.of(notEqual("spec.hideFromList", BooleanUtils.TRUE)));
+        return client.listBy(
+                        Category.class,
+                        listOptions,
+                        PageRequestImpl.of(pageNullSafe(page), sizeNullSafe(size), defaultSort()))
+                .map(list -> {
+                    List<CategoryVo> categoryVos =
+                            list.get().map(CategoryVo::from).collect(Collectors.toList());
+                    return new ListResult<>(list.getPage(), list.getSize(), list.getTotal(), categoryVos);
+                })
+                .defaultIfEmpty(new ListResult<>(page, size, 0L, List.of()));
     }
 
     @Override
     public Flux<CategoryTreeVo> listAsTree() {
-        return listAll()
-            .collectList()
-            .flatMapMany(list -> Flux.fromIterable(listToTree(list, null)));
+        return listAll().collectList().flatMapMany(list -> Flux.fromIterable(listToTree(list, null)));
     }
 
     @Override
     public Flux<CategoryTreeVo> listAsTree(String name) {
-        return listAllFor(name)
-            .collectList()
-            .flatMapMany(list -> Flux.fromIterable(listToTree(list, name)));
+        return listAllFor(name).collectList().flatMapMany(list -> Flux.fromIterable(listToTree(list, name)));
     }
 
     @Override
     public Flux<CategoryVo> listAll() {
-        return client.listAll(Category.class, new ListOptions(), defaultSort())
-            .filter(category -> !category.getSpec().isHideFromList())
-            .map(CategoryVo::from);
+        var listOptions = new ListOptions();
+        listOptions.setFieldSelector(FieldSelector.of(notEqual("spec.hideFromList", BooleanUtils.TRUE)));
+        return client.listAll(Category.class, listOptions, defaultSort()).map(CategoryVo::from);
     }
 
     private Flux<CategoryVo> listAllFor(String parentName) {
-        return Mono.defer(
-                () -> {
+        return Mono.defer(() -> {
                     if (StringUtils.isBlank(parentName)) {
                         return Mono.just(false);
                     }
                     return categoryService.isCategoryHidden(parentName);
                 })
-            .flatMapMany(
-                isHidden -> client.listAll(Category.class, new ListOptions(), defaultSort())
-                    .filter(category -> {
-                        if (isHidden) {
-                            return true;
-                        }
-                        return !category.getSpec().isHideFromList();
-                    })
-                    .map(CategoryVo::from)
-            );
+                .flatMapMany(isHidden -> {
+                    if (isHidden) {
+                        return client.listAll(Category.class, new ListOptions(), defaultSort())
+                                .map(CategoryVo::from);
+                    }
+                    return listAll();
+                });
     }
 
     private List<CategoryTreeVo> listToTree(List<CategoryVo> categoryVos, @Nullable String name) {
         Map<String, CategoryTreeVo> nameIdentityMap = categoryVos.stream()
-            .map(CategoryTreeVo::from)
-            .collect(Collectors.toMap(categoryVo -> categoryVo.getMetadata().getName(),
-                Function.identity()));
+                .map(CategoryTreeVo::from)
+                .collect(Collectors.toMap(categoryVo -> categoryVo.getMetadata().getName(), Function.identity()));
 
-        nameIdentityMap.forEach((nameKey, value) -> {
-            List<String> children = value.getSpec().getChildren();
-            if (children == null) {
-                return;
-            }
-            for (String child : children) {
-                CategoryTreeVo childNode = nameIdentityMap.get(child);
-                if (childNode != null) {
-                    childNode.setParentName(nameKey);
-                }
-            }
-        });
+        populateParentName(nameIdentityMap);
         var tree = listToTree(nameIdentityMap.values(), name);
         recomputePostCount(tree);
         return tree;
     }
 
+    static void populateParentName(Map<String, CategoryTreeVo> nameIdentityMap) {
+        Map<String, String> parentMap = nameIdentityMap.entrySet().stream()
+                .filter(entry -> hasValidParent(entry.getValue(), nameIdentityMap))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, entry -> entry.getValue().getSpec().getParent()));
+        Set<String> cyclicNames = cyclicNames(parentMap);
+        nameIdentityMap.forEach((name, value) -> {
+            var parentName = parentMap.get(name);
+            value.setParentName(parentName == null || cyclicNames.contains(name) ? null : parentName);
+        });
+    }
+
+    private static boolean hasValidParent(CategoryTreeVo category, Map<String, CategoryTreeVo> nameIdentityMap) {
+        var categoryName = category.getMetadata().getName();
+        var spec = category.getSpec();
+        if (spec == null) {
+            return false;
+        }
+        var parentName = spec.getParent();
+        return StringUtils.isNotBlank(parentName)
+                && !StringUtils.equals(parentName, categoryName)
+                && nameIdentityMap.containsKey(parentName);
+    }
+
+    private static Set<String> cyclicNames(Map<String, String> parentMap) {
+        Set<String> cyclicNames = new HashSet<>();
+        for (String name : parentMap.keySet()) {
+            var path = new ArrayList<String>();
+            var visiting = new HashSet<String>();
+            String current = name;
+            while (StringUtils.isNotBlank(current) && parentMap.containsKey(current)) {
+                if (!visiting.add(current)) {
+                    cyclicNames.addAll(path.subList(path.indexOf(current), path.size()));
+                    break;
+                }
+                path.add(current);
+                current = parentMap.get(current);
+            }
+        }
+        return cyclicNames;
+    }
+
     private static List<CategoryTreeVo> listToTree(Collection<CategoryTreeVo> list, String name) {
         Map<String, List<CategoryTreeVo>> parentNameIdentityMap = list.stream()
-            .filter(categoryTreeVo -> categoryTreeVo.getParentName() != null)
-            .collect(Collectors.groupingBy(CategoryTreeVo::getParentName));
+                .filter(categoryTreeVo -> categoryTreeVo.getParentName() != null)
+                .collect(Collectors.groupingBy(CategoryTreeVo::getParentName));
 
         list.forEach(node -> {
             // sort children
             List<CategoryTreeVo> children =
-                parentNameIdentityMap.getOrDefault(node.getMetadata().getName(), List.of())
-                    .stream()
-                    .sorted(defaultTreeNodeComparator())
-                    .toList();
+                    parentNameIdentityMap.getOrDefault(node.getMetadata().getName(), List.of()).stream()
+                            .sorted(defaultTreeNodeComparator())
+                            .toList();
             node.setChildren(children);
         });
         return list.stream()
-            .filter(v -> StringUtils.isEmpty(name) ? v.getParentName() == null
-                : StringUtils.equals(v.getMetadata().getName(), name))
-            .sorted(defaultTreeNodeComparator())
-            .collect(Collectors.toList());
+                .filter(v -> StringUtils.isEmpty(name)
+                        ? v.getParentName() == null
+                        : StringUtils.equals(v.getMetadata().getName(), name))
+                .sorted(defaultTreeNodeComparator())
+                .collect(Collectors.toList());
     }
 
     private CategoryTreeVo dummyVirtualRoot(List<CategoryTreeVo> treeNodes) {
         Category.CategorySpec categorySpec = new Category.CategorySpec();
         categorySpec.setSlug("/");
         return CategoryTreeVo.builder()
-            .metadata(new Metadata())
-            .spec(categorySpec)
-            .postCount(0)
-            .children(treeNodes)
-            .metadata(new Metadata())
-            .build();
+                .metadata(new Metadata())
+                .spec(categorySpec)
+                .postCount(0)
+                .children(treeNodes)
+                .metadata(new Metadata())
+                .build();
     }
 
     void recomputePostCount(List<CategoryTreeVo> treeNodes) {
@@ -203,56 +224,50 @@ public class CategoryFinderImpl implements CategoryFinder {
             }
         }
 
-        return rootNode.getSpec().isPreventParentPostCascadeQuery() ? originalPostCount
-            : rootNode.getPostCount();
+        return rootNode.getSpec().isPreventParentPostCascadeQuery() ? originalPostCount : rootNode.getPostCount();
     }
 
     static Comparator<CategoryTreeVo> defaultTreeNodeComparator() {
         Function<CategoryTreeVo, Integer> priority =
-            category -> Objects.requireNonNullElse(category.getSpec().getPriority(), 0);
+                category -> Objects.requireNonNullElse(category.getSpec().getPriority(), 0);
         Function<CategoryTreeVo, Instant> creationTimestamp =
-            category -> category.getMetadata().getCreationTimestamp();
+                category -> category.getMetadata().getCreationTimestamp();
         Function<CategoryTreeVo, String> name =
-            category -> category.getMetadata().getName();
-        return Comparator.comparing(priority)
-            .thenComparing(creationTimestamp)
-            .thenComparing(name);
+                category -> category.getMetadata().getName();
+        return Comparator.comparing(priority).thenComparing(creationTimestamp).thenComparing(name);
     }
 
     static Comparator<Category> defaultComparator() {
         Function<Category, Integer> priority =
-            category -> Objects.requireNonNullElse(category.getSpec().getPriority(), 0);
+                category -> Objects.requireNonNullElse(category.getSpec().getPriority(), 0);
         Function<Category, Instant> creationTimestamp =
-            category -> category.getMetadata().getCreationTimestamp();
-        Function<Category, String> name =
-            category -> category.getMetadata().getName();
+                category -> category.getMetadata().getCreationTimestamp();
+        Function<Category, String> name = category -> category.getMetadata().getName();
         return Comparator.comparing(priority)
-            .thenComparing(creationTimestamp)
-            .thenComparing(name)
-            .reversed();
+                .thenComparing(creationTimestamp)
+                .thenComparing(name)
+                .reversed();
     }
 
     @Override
     public Mono<CategoryVo> getParentByName(String name) {
-        return categoryService.getParentByName(name)
-            .map(CategoryVo::from);
+        return categoryService.getParentByName(name).map(CategoryVo::from);
     }
 
     @Override
     public Flux<CategoryVo> getBreadcrumbs(String name) {
         return listAllFor(name)
-            .collectList()
-            .map(list -> listToTree(list, null))
-            .flatMapMany(treeNodes -> {
-                var rootNode = dummyVirtualRoot(treeNodes);
-                var paths = new ArrayList<CategoryVo>();
-                findPathHelper(rootNode, name, paths);
-                return Flux.fromIterable(paths);
-            });
+                .collectList()
+                .map(list -> listToTree(list, null))
+                .flatMapMany(treeNodes -> {
+                    var rootNode = dummyVirtualRoot(treeNodes);
+                    var paths = new ArrayList<CategoryVo>();
+                    findPathHelper(rootNode, name, paths);
+                    return Flux.fromIterable(paths);
+                });
     }
 
-    private static boolean findPathHelper(CategoryTreeVo node, String targetName,
-        List<CategoryVo> path) {
+    private static boolean findPathHelper(CategoryTreeVo node, String targetName, List<CategoryVo> path) {
         Assert.notNull(targetName, "Target name must not be null");
         if (node == null) {
             return false;
